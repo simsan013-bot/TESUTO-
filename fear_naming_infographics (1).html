@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>恐怖に名前をつける - 図解集</title>
+    <style>
+        body {
+            font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            line-height: 1.6;
+        }
+        
+        .infographic {
+            background: white;
+            margin: 30px 0;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            page-break-after: always;
+        }
+        
+        .title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        .comparison-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+        }
+        
+        .before, .after {
+            width: 40%;
+            text-align: center;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .before {
+            background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+            color: white;
+        }
+        
+        .after {
+            background: linear-gradient(135deg, #4ecdc4, #6bcf7f);
+            color: white;
+        }
+        
+        .arrow {
+            font-size: 30px;
+            color: #3498db;
+            font-weight: bold;
+        }
+        
+        .fear-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        .fear-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            position: relative;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .fear-card h3 {
+            margin-top: 0;
+            font-size: 16px;
+        }
+        
+        .fear-card p {
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        
+        .brain-diagram {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+        }
+        
+        .brain {
+            position: relative;
+            width: 300px;
+            height: 200px;
+            background: linear-gradient(135deg, #ffeaa7, #fab1a0);
+            border-radius: 150px 150px 100px 100px;
+            margin: 0 20px;
+        }
+        
+        .amygdala {
+            position: absolute;
+            width: 50px;
+            height: 30px;
+            background: #e74c3c;
+            border-radius: 50%;
+            bottom: 60px;
+            left: 80px;
+        }
+        
+        .prefrontal {
+            position: absolute;
+            width: 80px;
+            height: 40px;
+            background: #3498db;
+            border-radius: 10px;
+            top: 30px;
+            right: 40px;
+        }
+        
+        .process-flow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+        
+        .process-step {
+            background: linear-gradient(135deg, #a29bfe, #6c5ce7);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            width: 200px;
+            margin: 10px;
+            position: relative;
+        }
+        
+        .process-step::after {
+            content: '→';
+            position: absolute;
+            right: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 24px;
+            color: #6c5ce7;
+        }
+        
+        .process-step:last-child::after {
+            display: none;
+        }
+        
+        .detailed-map {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .fear-category {
+            border: 2px solid #3498db;
+            border-radius: 10px;
+            padding: 15px;
+            background: #ecf0f1;
+        }
+        
+        .category-title {
+            background: #3498db;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 5px;
+            margin: -15px -15px 15px -15px;
+            font-weight: bold;
+        }
+        
+        .sub-fear {
+            background: white;
+            padding: 8px 12px;
+            margin: 8px 0;
+            border-radius: 5px;
+            border-left: 4px solid #e74c3c;
+            font-size: 14px;
+        }
+        
+        .light-bulb {
+            font-size: 30px;
+            color: #f1c40f;
+            display: inline-block;
+            margin: 0 10px;
+        }
+        
+        .emotion-cloud {
+            background: #2c3e50;
+            color: white;
+            padding: 15px;
+            border-radius: 50px;
+            font-size: 14px;
+            margin: 10px 5px;
+            display: inline-block;
+        }
+        
+        @media (max-width: 768px) {
+            .comparison-container {
+                flex-direction: column;
+            }
+            
+            .before, .after {
+                width: 80%;
+                margin: 10px 0;
+            }
+            
+            .arrow {
+                transform: rotate(90deg);
+            }
+            
+            .process-flow {
+                flex-direction: column;
+            }
+            
+            .process-step::after {
+                content: '↓';
+                right: 50%;
+                top: 100%;
+                transform: translateX(50%);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 図解1: 恐怖が正体不明 vs 名前をつけた状態 -->
+    <div class="infographic">
+        <div class="title">恐怖の「正体不明」vs「名前をつけた状態」</div>
+        
+        <div class="comparison-container">
+            <div class="before">
+                <h3>😰 正体不明の恐怖</h3>
+                <div class="emotion-cloud">なんとなく怖い</div>
+                <div class="emotion-cloud">モヤモヤ</div>
+                <div class="emotion-cloud">不安</div>
+                <div class="emotion-cloud">どうしよう</div>
+                <p style="margin-top: 20px;">脳が「危険かも」と判断<br>→ 行動がストップ</p>
+            </div>
+            
+            <div class="arrow">→</div>
+            
+            <div class="after">
+                <h3>😌 名前をつけた恐怖</h3>
+                <div style="background: rgba(255,255,255,0.3); padding: 15px; border-radius: 10px; margin: 15px 0;">
+                    <strong>「拒絶される恐れ」</strong>
+                </div>
+                <p>正体が分かる<br>→ 対処法を考えられる<br>→ 行動できる</p>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; background: #f8f9fa; padding: 20px; border-radius: 10px;">
+            <span class="light-bulb">💡</span>
+            <strong>夜道の茂みの例：</strong> 「何の音？」(怖い) → 「猫だった」(安心) と同じ原理
+        </div>
+    </div>
+
+    <!-- 図解2: 5つの恐れの分類図 -->
+    <div class="infographic">
+        <div class="title">行動を止める「5つの恐れ」分類図</div>
+        
+        <div class="fear-grid">
+            <div class="fear-card">
+                <h3>① 拒絶される恐れ</h3>
+                <p>「嫌われる」<br>「批判される」<br>「否定される」</p>
+            </div>
+            
+            <div class="fear-card">
+                <h3>② 失敗する恐れ</h3>
+                <p>「うまくいかない」<br>「損をする」<br>「恥をかく」</p>
+            </div>
+            
+            <div class="fear-card">
+                <h3>③ 成功する恐れ</h3>
+                <p>「注目される」<br>「責任が増える」<br>「変化が怖い」</p>
+            </div>
+            
+            <div class="fear-card">
+                <h3>④ 孤立する恐れ</h3>
+                <p>「一人になる」<br>「仲間外れ」<br>「居場所を失う」</p>
+            </div>
+            
+            <div class="fear-card">
+                <h3>⑤ コントロールできない恐れ</h3>
+                <p>「予測不能」<br>「想定外」<br>「準備不足」</p>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; background: #e8f5e8; padding: 20px; border-radius: 10px;">
+            <strong>💡 ポイント：</strong> 複数の恐れが同時に働くことも多い。まずは一番強い恐れを特定しよう。
+        </div>
+    </div>
+
+    <!-- 図解3: 脳内メカニズム -->
+    <div class="infographic">
+        <div class="title">恐怖に名前をつけると脳で何が起こる？</div>
+        
+        <div class="brain-diagram">
+            <div>
+                <h3>😰 名前をつける前</h3>
+                <div class="brain">
+                    <div class="amygdala" style="animation: pulse 1s infinite;"></div>
+                    <div class="prefrontal" style="opacity: 0.3;"></div>
+                </div>
+                <p style="text-align: center;">
+                    🔴 <strong>扁桃体</strong>が活発<br>
+                    (恐怖・不安を感じる部分)
+                </p>
+            </div>
+            
+            <div class="arrow">→</div>
+            
+            <div>
+                <h3>😌 名前をつけた後</h3>
+                <div class="brain">
+                    <div class="amygdala" style="opacity: 0.5;"></div>
+                    <div class="prefrontal" style="animation: pulse 1s infinite;"></div>
+                </div>
+                <p style="text-align: center;">
+                    🔵 <strong>前頭前皮質</strong>が活発<br>
+                    (論理的思考を司る部分)
+                </p>
+            </div>
+        </div>
+        
+        <div style="background: #fff3cd; padding: 20px; border-radius: 10px; margin-top: 30px;">
+            <h4>📚 科学的根拠</h4>
+            <p><strong>扁桃体：</strong> 未知のものを「危険かも」と判断し、ストレスホルモンを分泌</p>
+            <p><strong>前頭前皮質：</strong> 論理的思考で扁桃体の活動を抑制し、冷静な判断を可能にする</p>
+            <p><strong>「名前をつける」行為：</strong> 前頭前皮質を活性化させ、恐怖を客観視できる状態に</p>
+        </div>
+        
+        <style>
+            @keyframes pulse {
+                0% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.7; transform: scale(1.1); }
+                100% { opacity: 1; transform: scale(1); }
+            }
+        </style>
+    </div>
+
+    <!-- 図解4: 恐怖パターンの詳細マッピング -->
+    <div class="infographic">
+        <div class="title">あなたの恐怖パターンを特定しよう - 詳細マップ</div>
+        
+        <div class="detailed-map">
+            <div class="fear-category">
+                <div class="category-title">① 拒絶される恐れ</div>
+                <div class="sub-fear"><strong>批判恐怖型</strong><br>間違いを指摘されるのが怖い</div>
+                <div class="sub-fear"><strong>嫌われ恐怖型</strong><br>本当の自分を見せられない</div>
+                <div class="sub-fear"><strong>無視恐怖型</strong><br>反応してもらえないのが恥ずかしい</div>
+                <div class="sub-fear"><strong>比較恐怖型</strong><br>他人より劣っていると思われたくない</div>
+            </div>
+            
+            <div class="fear-category">
+                <div class="category-title">② 失敗する恐れ</div>
+                <div class="sub-fear"><strong>完璧主義型</strong><br>100%成功しないとやりたくない</div>
+                <div class="sub-fear"><strong>損失恐怖型</strong><br>時間やお金を無駄にしたくない</div>
+                <div class="sub-fear"><strong>恥恐怖型</strong><br>失敗して恥をかくのが嫌</div>
+                <div class="sub-fear"><strong>能力不足型</strong><br>スキルが足りない気がする</div>
+            </div>
+            
+            <div class="fear-category">
+                <div class="category-title">③ 成功する恐れ</div>
+                <div class="sub-fear"><strong>責任重圧型</strong><br>期待されすぎるのが負担</div>
+                <div class="sub-fear"><strong>環境変化型</strong><br>今の生活が変わるのが不安</div>
+                <div class="sub-fear"><strong>偽物症候群型</strong><br>実力以上に評価されるのが怖い</div>
+                <div class="sub-fear"><strong>孤独恐怖型</strong><br>成功で人と距離ができるのが嫌</div>
+            </div>
+            
+            <div class="fear-category">
+                <div class="category-title">④ 孤立する恐れ</div>
+                <div class="sub-fear"><strong>所属欲求型</strong><br>グループから外されるのが怖い</div>
+                <div class="sub-fear"><strong>承認欲求型</strong><br>周りから認められなくなるかも</div>
+                <div class="sub-fear"><strong>依存関係型</strong><br>今の関係性を失いたくない</div>
+                <div class="sub-fear"><strong>アイデンティティ型</strong><br>自分らしさが受け入れられないかも</div>
+            </div>
+            
+            <div class="fear-category">
+                <div class="category-title">⑤ コントロールできない恐れ</div>
+                <div class="sub-fear"><strong>予測不能型</strong><br>何が起こるか分からない不安</div>
+                <div class="sub-fear"><strong>準備不足型</strong><br>まだ準備が足りない気がする</div>
+                <div class="sub-fear"><strong>選択恐怖型</strong><br>間違った選択をするかも</div>
+                <div class="sub-fear"><strong>時間不安型</strong><br>タイミングが間違っているかも</div>
+            </div>
+        </div>
+        
+        <div style="background: #e3f2fd; padding: 20px; border-radius: 10px; margin-top: 20px;">
+            <strong>🎯 使い方：</strong> 最も当てはまるパターンを1〜3つ選んで、自分の恐怖の「正体」を明確にしよう
+        </div>
+    </div>
+
+    <!-- 図解5: 段階的アプローチのステップフロー -->
+    <div class="infographic">
+        <div class="title">恐怖を乗り越える「段階的アプローチ」</div>
+        
+        <div class="process-flow">
+            <div class="process-step">
+                <h3>STEP 1</h3>
+                <h4>🛡️ 安全な環境でテスト</h4>
+                <p>小さく始めて<br>リスクを最小限に</p>
+            </div>
+            
+            <div class="process-step">
+                <h3>STEP 2</h3>
+                <h4>📝 感情の観察日記</h4>
+                <p>恐怖のパターンを<br>記録・分析する</p>
+            </div>
+            
+            <div class="process-step">
+                <h3>STEP 3</h3>
+                <h4>🏆 成功体験の積み重ね</h4>
+                <p>小さな成功で<br>自信を育てる</p>
+            </div>
+            
+            <div class="process-step">
+                <h3>STEP 4</h3>
+                <h4>👥 サポート体制構築</h4>
+                <p>理解者や専門家の<br>サポートを得る</p>
+            </div>
+        </div>
+        
+        <div style="background: #f0f8f0; padding: 25px; border-radius: 10px; margin-top: 30px;">
+            <h4>📋 実践例：SNS発信が怖い場合</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #4CAF50;">
+                    <strong>STEP 1:</strong><br>
+                    友人3人だけに限定投稿
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #2196F3;">
+                    <strong>STEP 2:</strong><br>
+                    投稿時の気持ちを記録
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #FF9800;">
+                    <strong>STEP 3:</strong><br>
+                    「いいね」が1つでも成功
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #9C27B0;">
+                    <strong>STEP 4:</strong><br>
+                    SNS仲間を見つける
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; background: #ffebee; padding: 20px; border-radius: 10px;">
+            <span style="font-size: 24px;">🎯</span>
+            <strong>重要：</strong> いきなり大きなチャレンジではなく、段階を踏んで進むことで成功率が大幅アップ！
+        </div>
+    </div>
+
+    <div style="text-align: center; padding: 40px; background: #2c3e50; color: white; border-radius: 15px; margin-top: 30px;">
+        <h2>🌟 まとめ</h2>
+        <p>恐怖に名前をつけることで、感情と行動を分けて考えられるようになります。<br>
+        これらの図解を参考に、あなたの恐怖パターンを特定し、段階的にアプローチしていきましょう。</p>
+        <p style="font-size: 18px; margin-top: 20px;"><strong>一歩ずつ、恐怖と一緒に進んでいこう！</strong></p>
+    </div>
+</body>
+</html>
