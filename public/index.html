@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>シナリオ画像ジェネレーター - Nano Banana</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+
+  <!-- ========== HEADER ========== -->
+  <header>
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">🍌</span>
+        <span class="logo-text">Nano Banana<br><small>シナリオ画像ジェネレーター</small></span>
+      </div>
+      <nav class="steps-nav" id="stepsNav">
+        <div class="step-item active" data-step="1">
+          <span class="step-num">1</span>
+          <span class="step-label">キャラクター</span>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step-item" data-step="2">
+          <span class="step-num">2</span>
+          <span class="step-label">シナリオ</span>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step-item" data-step="3">
+          <span class="step-num">3</span>
+          <span class="step-label">シーン生成</span>
+        </div>
+        <div class="step-divider"></div>
+        <div class="step-item" data-step="4">
+          <span class="step-num">4</span>
+          <span class="step-label">ダウンロード</span>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ========== MAIN ========== -->
+  <main id="app"></main>
+
+  <!-- ========== MODAL ========== -->
+  <div class="modal-overlay" id="modalOverlay" style="display:none">
+    <div class="modal" id="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">プロンプト編集</h3>
+        <button class="modal-close" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
