@@ -39,6 +39,11 @@ function advanceWorkItem_(workId) {
     return;
   }
 
+  if (stateValue === QUEUE_STATUS.NG_RETRY) {
+    startProcess_(workId, processName);
+    return;
+  }
+
   if (stateValue === QUEUE_STATUS.DONE) {
     moveToNextProcess_(workId, processName);
     return;
@@ -46,11 +51,12 @@ function advanceWorkItem_(workId) {
 }
 
 function startProcess_(workId, processName) {
-  updateOverallStatus(workId, QUEUE_STATUS.RUNNING, processName, null);
+  var executor = PIPELINE_EXECUTORS[processName];
+  updateOverallStatus(workId, QUEUE_STATUS.RUNNING, processName, 'なし');
   updateProcessState(workId, processName, QUEUE_STATUS.RUNNING, null);
 
-  var executor = PIPELINE_EXECUTORS[processName];
   if (!executor) {
+    // ディレクター/アナリスト/チェッカー等、STEP4・5で実装予定の工程
     console.log('工程 "' + processName + '" の実行ロジックは未実装のため待機します。');
     return;
   }
@@ -82,7 +88,7 @@ function advanceToNextProcessAfterGate_(workId, processName) {
     updateOverallStatus(workId, QUEUE_STATUS.DONE, processName, 'なし');
     return;
   }
-  updateOverallStatus(workId, QUEUE_STATUS.RUNNING, next, 'なし');
+  updateOverallStatus(workId, QUEUE_STATUS.WAITING, next, 'なし');
 }
 
 // Sim確認ゲートをクリアして次工程へ進める（STEP7のゲートUIから呼ばれる想定。
