@@ -3,9 +3,27 @@
 プロデューサー（全体統括AI）のGASプロジェクト。自動化キューシート／NGログシートの
 CRUDと、パイプラインのオーケストレーション（状態管理・ゲート引き上げ・リトライ制御）を持つ。
 
-実装範囲はSTEP1〜3（自動化キューシート、プロデューサーの状態機械、既存6App呼び出し）。
-チェッカー①〜⑦・ディレクター・アナリスト・新規3App（編集／サムネ／投稿）・ゲートUI・
-channels設定はまだ未実装（指示書7章のSTEP4以降）。
+実装範囲はSTEP1〜3（自動化キューシート、プロデューサーの状態機械、既存6App呼び出し）＋
+アナリストFB工程（`apps/analyst-feedback-app`）。チェッカー①〜⑦・ディレクター・
+新規3App（編集／サムネ／投稿）・ゲートUI・channels設定はまだ未実装（指示書7章のSTEP4以降）。
+
+## シナリオ→アナリストFB→圧縮 間のデータ受け渡し
+
+`圧縮`App・`アナリストFB`Appはどちらも`title`/`design`/`script`（または`steps`）を
+JSONの値としてそのまま受け取る設計のため、工程間で大きな台本テキストを橋渡しする
+必要がある。`startProcess_`（`Code.gs`）はワークの`フォルダID`に
+`title`/`design`/`steps`をテキスト化したDocを保存し、次工程の実行時にそのDocを
+読み込んで入力を組み立てる（`StageOutput.gs`の`buildStepsDocText_`/
+`parseStepsDocText_`/`saveTextAsDoc_`/`loadDocText_`）。
+
+- `シナリオ`工程完了時：`No{作品No}_シナリオ`Docを保存（出力ID列に記録）
+- `アナリストFB`工程：`シナリオ`Docを読み込んで本Appに渡し、修正後の結果を
+  `No{作品No}_アナリストFB_修正版`Docとして保存
+- `圧縮`工程：`アナリストFB`Docを読み込んで`script`/`design`を組み立てて渡す
+  （`chars`は現時点でキャラクター設定生成元が無いため常に空文字）
+
+`キャラ別台本`以降はまだこの仕組みに乗せていない（圧縮Appの`exportToSpreadsheet`等との
+接続方法が未確定のため）。
 
 ## セットアップ（clasp）
 
@@ -28,6 +46,8 @@ setScriptProperties({
   SPREADSHEET_ID: '...',           // 自動化キューシート/NGログを置くスプレッドシートのID
   SCENARIO_APP_URL: '...',
   SCENARIO_APP_KEY: '...',         // 不要な場合は省略可
+  ANALYST_FEEDBACK_APP_URL: '...',
+  ANALYST_FEEDBACK_APP_KEY: '...',
   COMPRESSION_APP_URL: '...',
   COMPRESSION_APP_KEY: '...',
   CHARACTER_SCRIPT_APP_URL: '...',

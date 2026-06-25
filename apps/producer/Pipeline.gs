@@ -10,10 +10,11 @@ var PIPELINE_GATE_AFTER = {
   '編集': 'C'
 };
 
-// STEP3で接続済みの既存App呼び出し。未接続の工程（ディレクター/アナリスト/チェッカー/
-// 新規3App）はキーを持たず、STEP4以降の実装時にここへ追加する。
+// STEP3で接続済みの既存App呼び出し＋アナリストFB工程。未接続の工程
+// （ディレクター/チェッカー/新規3App）はキーを持たず、STEP4以降の実装時にここへ追加する。
 var PIPELINE_EXECUTORS = {
   'シナリオ': callScenarioApp_,
+  'アナリストFB': callAnalystFeedbackApp_,
   '圧縮': callCompressionTool_,
   'キャラ別台本': callCharacterScriptApp_,
   '音声': callFishAudioTts_,

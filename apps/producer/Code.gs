@@ -3,9 +3,9 @@
 // チェッカーNG時のリトライ制御を行う。
 //
 // 時間主導トリガーで runProducerTick() を実行する想定。
-// チェッカー①〜⑦／ディレクター／アナリスト（STEP4・5）は未実装のため、
-// それらの工程は「実行中」のまま保留され、後続STEPで recordCheckResult() 等から
-// 状態を進められるようになるまで自動では先に進まない。
+// チェッカー①〜⑦／ディレクターは未実装のため、それらの工程は「実行中」のまま
+// 保留され、後続STEPで recordCheckResult() 等から状態を進められるようになるまで
+// 自動では先に進まない（アナリストFBはapps/analyst-feedback-appとして実装済み）。
 
 function runProducerTick() {
   var workIds = listActionableWorkIds();
@@ -56,22 +56,56 @@ function startProcess_(workId, processName) {
   updateProcessState(workId, processName, QUEUE_STATUS.RUNNING, null);
 
   if (!executor) {
-    // ディレクター/アナリスト/チェッカー等、STEP4・5で実装予定の工程
+    // ディレクター/チェッカー等、STEP4以降で実装予定の工程
     console.log('工程 "' + processName + '" の実行ロジックは未実装のため待機します。');
     return;
   }
 
   var row = getQueueRow(workId);
-  var payload = {
+  var payload = buildStagePayload_(workId, row, processName);
+  var result = executor(payload);
+  var outputId = saveStageResult_(workId, row, processName, result);
+  updateProcessState(workId, processName, QUEUE_STATUS.CHECKING, outputId);
+}
+
+// 工程ごとに必要な入力を組み立てる。
+// 「シナリオ」「アナリストFB」「圧縮」はDoc経由でtitle/design/stepsを受け渡す
+// （apps/producer/StageOutput.gs参照）。それ以外はまだ未接続のため、
+// 従来通りキュー行の値のみを渡す暫定payload。
+function buildStagePayload_(workId, row, processName) {
+  if (processName === 'シナリオ') {
+    return { title: row['タイトル'], refScenario: row['参考シナリオ'] };
+  }
+  if (processName === 'アナリストFB') {
+    var scenarioOutput = parseStepsDocText_(loadDocText_(row['シナリオ_出力ID']));
+    return { title: scenarioOutput.title, design: scenarioOutput.design, steps: scenarioOutput.steps };
+  }
+  if (processName === '圧縮') {
+    var feedbackOutput = parseStepsDocText_(loadDocText_(row['アナリストFB_出力ID']));
+    return { script: feedbackOutput.steps.join('\n\n'), design: feedbackOutput.design, chars: '' };
+  }
+  return {
     workId: workId,
     title: row['タイトル'],
     refScenario: row['参考シナリオ'],
     channelId: row['チャンネルID'],
     folderId: row['フォルダID']
   };
+}
 
-  var result = executor(payload);
-  updateProcessState(workId, processName, QUEUE_STATUS.CHECKING, result && result.outputId);
+// 実行結果を次工程が読めるよう保存し、出力IDを返す。
+// 「シナリオ」「アナリストFB」はtitle/design/stepsをDocに保存する
+// （アナリストFBの修正後Docは「修正版」として保存する、という要件のためファイル名で区別）。
+function saveStageResult_(workId, row, processName, result) {
+  if (!result || result.ok === false) {
+    throw new Error(processName + ' 実行エラー: ' + (result && result.error));
+  }
+  if (processName === 'シナリオ' || processName === 'アナリストFB') {
+    var docText = buildStepsDocText_(result.title, result.design, result.steps);
+    var fileName = 'No' + workId + '_' + processName + (processName === 'アナリストFB' ? '_修正版' : '');
+    return saveTextAsDoc_(row['フォルダID'], fileName, docText);
+  }
+  return result.outputId;
 }
 
 function moveToNextProcess_(workId, processName) {
