@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎬 スカッと系シナリオ 圧縮・再編集ツール</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #07080f;
+    --bg2:      #0c0e1a;
+    --card:     #10132a;
+    --card2:    #0d0f20;
+    --border:   #1e2040;
+    --border2:  #2a2d4a;
+    --text:     #e2e4f0;
+    --text2:    #d1d5f0;
+    --muted:    #6b7280;
+    --muted2:   #4b5563;
+    --purple:   #7c3aed;
+    --purple2:  #4c1d95;
+    --purple3:  #a78bfa;
+    --amber:    #f59e0b;
+    --teal:     #10b981;
+    --red:      #ef4444;
+    --blue:     #38bdf8;
+    --indigo:   #818cf8;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: linear-gradient(135deg, var(--bg) 0%, var(--bg2) 50%, var(--bg) 100%);
+    color: var(--text);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', 'Yu Gothic', 'Meiryo', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 60px;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(180deg, #13152a 0%, #0d0f1f 100%);
+    border-bottom: 1px solid var(--border2);
+    padding: 22px 28px 18px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-title-row { display: flex; align-items: center; gap: 10px; margin-bottom: 3px; }
+  .header h1 { font-size: 18px; font-weight: 700; color: var(--purple3); letter-spacing: .03em; }
+  .header p  { font-size: 11px; color: var(--muted); padding-left: 38px; }
+
+  /* ── Body ── */
+  .body { max-width: 860px; margin: 0 auto; padding: 24px 20px; }
+
+  /* ── Card ── */
+  .card {
+    background: linear-gradient(145deg, var(--card) 0%, var(--card2) 100%);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 18px;
+    overflow: hidden;
+    transition: border-color .4s, box-shadow .4s;
+  }
+  .card-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #1a1d38;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .card-header-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card-body { padding: 14px 16px; }
+
+  /* ── API Key Card ── */
+  .apikey-card { border-color: #2a2d4a; }
+  .apikey-toggle {
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: color .2s;
+  }
+  .apikey-toggle:hover { color: var(--purple3); }
+  .apikey-body { padding: 14px 16px; border-top: 1px solid #1a1d38; }
+  .apikey-row { display: flex; gap: 8px; align-items: center; }
+  .apikey-input {
+    flex: 1;
+    background: #080a18;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text2);
+    font-size: 13px;
+    padding: 9px 12px;
+    font-family: 'Courier New', monospace;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .apikey-input:focus { border-color: var(--purple); }
+  .apikey-save-btn {
+    background: linear-gradient(135deg, var(--purple2), var(--purple));
+    border: none; border-radius: 7px; color: #fff;
+    font-size: 12px; font-weight: 600; padding: 9px 16px;
+    cursor: pointer; transition: all .2s; white-space: nowrap;
+  }
+  .apikey-save-btn:hover { filter: brightness(1.15); }
+  .apikey-status { font-size: 11px; margin-top: 7px; }
+
+  /* ── Badge ── */
+  .badge {
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .05em;
+    white-space: nowrap;
+  }
+
+  /* ── Section label ── */
+  .section-label { font-size: 14px; font-weight: 600; color: var(--purple3); }
+  .phase-tag { font-size: 11px; color: var(--muted2); }
+
+  /* ── Textarea ── */
+  textarea {
+    width: 100%;
+    background: #080a18;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text2);
+    font-size: 12.5px;
+    line-height: 1.8;
+    padding: 12px 14px;
+    resize: vertical;
+    font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', monospace;
+    outline: none;
+    transition: border-color .2s;
+  }
+  textarea:focus { border-color: var(--purple); box-shadow: 0 0 0 2px #6d28d920; }
+  textarea::placeholder { color: #2a2d4a; }
+
+  .char-count { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+  .char-sub { font-size: 11px; font-weight: 400; color: var(--muted2); }
+  .meta-row { display: flex; align-items: center; justify-content: space-between; margin-top: 7px; padding: 4px 0; }
+  .sub-label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .08em; margin-bottom: 7px; margin-top: 4px; text-transform: uppercase; }
+  .divider { height: 1px; background: linear-gradient(90deg, transparent, #2a2d4a50, transparent); margin: 6px 0 12px; }
+
+  /* ── Buttons ── */
+  .generate-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #6d28d9, #7c3aed, #8b5cf6);
+    border: none; border-radius: 10px; color: #fff;
+    font-size: 15px; font-weight: 700; padding: 13px 0;
+    cursor: pointer; transition: all .3s; letter-spacing: .06em;
+    box-shadow: 0 4px 24px #7c3aed50; margin-top: 12px;
+  }
+  .generate-btn:disabled {
+    background: linear-gradient(135deg, #1f2037, #1a1b30);
+    color: var(--muted2); cursor: not-allowed; box-shadow: none;
+  }
+  .generate-btn:not(:disabled):hover { filter: brightness(1.12); transform: translateY(-1px); }
+
+  .copy-btn {
+    background: linear-gradient(135deg, #4c1d95, #6d28d9);
+    border: none; border-radius: 7px; color: #fff;
+    font-size: 12px; font-weight: 600; padding: 6px 13px;
+    cursor: pointer; transition: all .2s; letter-spacing: .03em; white-space: nowrap;
+  }
+  .copy-btn.copied { background: linear-gradient(135deg, #059669, #047857); }
+  .copy-btn:disabled { opacity: .35; cursor: not-allowed; }
+  .copy-btn:not(:disabled):hover { filter: brightness(1.15); transform: translateY(-1px); }
+
+  .copy-btn-lg {
+    background: linear-gradient(135deg, #5b21b6, #7c3aed);
+    border: none; border-radius: 8px; color: #fff;
+    font-size: 13px; font-weight: 700; padding: 10px 22px;
+    cursor: pointer; transition: all .2s; letter-spacing: .04em;
+    box-shadow: 0 0 20px #7c3aed40;
+  }
+  .copy-btn-lg.copied { background: linear-gradient(135deg, #059669, #047857); box-shadow: 0 0 20px #05966940; }
+  .copy-btn-lg:disabled { opacity: .35; cursor: not-allowed; }
+  .copy-btn-lg:not(:disabled):hover { filter: brightness(1.12); }
+
+  /* ── Progress ── */
+  .progress-bar {
+    background: #0d0f20; border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px; margin-bottom: 18px;
+  }
+  .progress-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .progress-label { font-size: 12px; font-weight: 600; color: var(--purple3); }
+  .progress-count { font-size: 12px; color: var(--muted); }
+  .progress-track { height: 6px; background: #1a1d38; border-radius: 100px; overflow: hidden; }
+  .progress-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #6d28d9, #8b5cf6, #a78bfa);
+    border-radius: 100px; transition: width .6s ease;
+    box-shadow: 0 0 10px #8b5cf660;
+  }
+  .phase-dots { display: flex; gap: 7px; margin-top: 10px; flex-wrap: wrap; }
+  .phase-dot {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 600; padding: 3px 9px;
+    border-radius: 6px; border: 1px solid #ffffff08;
+    color: var(--muted2); transition: all .3s;
+  }
+  .phase-dot.done  { color: var(--purple3); background: #2d1b6930; border-color: #6d28d940; }
+  .phase-dot.active{ color: var(--amber);  background: #f59e0b15; border-color: #f59e0b30; }
+
+  /* ── Total card ── */
+  .total-card {
+    background: linear-gradient(145deg, #1a0f3a 0%, #130c2a 100%);
+    border: 1px solid #3d2a6a;
+    border-radius: 12px; margin-bottom: 18px;
+  }
+  .total-inner { padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; }
+  .total-label { font-size: 12px; color: var(--purple); font-weight: 700; letter-spacing: .05em; margin-bottom: 3px; }
+  .total-num { font-size: 26px; font-weight: 800; letter-spacing: .02em; }
+  .total-unit { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 3px; }
+  .total-hint { font-size: 11px; color: var(--muted2); margin-top: 2px; }
+
+  /* ── Error ── */
+  .error-box {
+    background: #2d0b0b; border: 1px solid #7f1d1d;
+    border-radius: 8px; color: #fca5a5; font-size: 13px;
+    padding: 11px 15px; margin-bottom: 16px; line-height: 1.6;
+  }
+
+  /* ── Waiting placeholder ── */
+  .waiting {
+    background: #080a18; border: 1px solid var(--border);
+    border-radius: 8px; color: #2a2d4a;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; min-height: 120px;
+  }
+
+  /* ── Generating pulse ── */
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  .generating-tag { font-size: 11px; color: var(--amber); animation: pulse 1.2s infinite; }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #080a18; }
+  ::-webkit-scrollbar-thumb { background: #2a2d4a; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════ -->
+<div class="header">
+  <div class="header-title-row">
+    <span style="font-size:26px;line-height:1">🎬</span>
+    <h1>スカッと系シナリオ 圧縮・再編集ツール</h1>
+  </div>
+  <p>元シナリオ（2〜3万字）→ 動画尺20〜29分 ｜ 目標8,000〜12,000文字（純セリフのみ）｜ 8フェーズ感情設計</p>
+</div>
+
+<!-- ══ BODY ══════════════════════════════════════════ -->
+<div class="body">
+
+  <!-- API Key -->
+  <div class="card apikey-card" id="apiKeyCard">
+    <button class="apikey-toggle" onclick="toggleApiKey()" id="apiKeyToggle">
+      <span id="apiKeyIcon">▶</span>
+      <span id="apiKeyToggleLabel">🔑 APIキーを設定する（初回のみ必要）</span>
+    </button>
+    <div class="apikey-body" id="apiKeyBody" style="display:none">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.7">
+        Anthropic APIキーを入力してください。キーは <strong style="color:var(--purple3)">console.anthropic.com</strong> で取得できます。<br>
+        入力後「保存」を押すとブラウザに記録され、次回以降は自動的に読み込まれます。
+      </div>
+      <div class="apikey-row">
+        <input type="password" class="apikey-input" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off">
+        <button class="apikey-save-btn" onclick="saveApiKey()">保存</button>
+      </div>
+      <div class="apikey-status" id="apiKeyStatus"></div>
+    </div>
+  </div>
+
+  <!-- キャラクター設定パネル -->
+  <div class="card" id="charsCard" style="transition:border-color .3s,box-shadow .3s">
+    <div class="card-header" style="cursor:pointer" onclick="toggleCharsPanel()">
+      <div class="card-header-left">
+        <span class="badge" id="charsCastBadge" style="background:#6b728022;border:1px solid #6b728044;color:#9ca3af">🎭 CAST</span>
+        <span class="section-label">キャラクター設定</span>
+        <span id="charsStatusBadge" style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#4b5563;background:#1f2937;border:1px solid #374151;border-radius:5px;padding:2px 8px;letter-spacing:0.06em">未設定</span>
+        <span id="charsWarnText" style="font-size:10px;color:var(--amber);margin-left:4px">⚠ 設定すると口調が大幅に改善されます</span>
+      </div>
+      <span id="charsPanelToggleLabel" style="font-size:12px;color:var(--muted2);font-family:monospace">▲ 折りたたむ</span>
+    </div>
+    <div id="charsPanelBody" style="padding:14px 16px">
+      <div style="background:#0a1628;border:1px solid #1e3a5f;border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:12px;color:#7dd3fc;line-height:1.7">
+        <div style="font-weight:700;margin-bottom:6px;color:#38bdf8">📌 記入のポイント</div>
+        <div>・<strong>キャラクター名・年齢・立場</strong>（呼び方・敬語の有無の基準になります）</div>
+        <div>・<strong>性格・感情傾向</strong>（怒ったとき、落ち込んだとき、喜んだときの変化など）</div>
+        <div>・<strong>語尾・口癖・話し方の特徴</strong>（例：「〜じゃん？」「〜だろ」「〜なんですよ」）</div>
+        <div>・<strong>ナレーション口調</strong>（主人公の独白スタイル）</div>
+      </div>
+      <textarea id="charsInput" style="min-height:200px;font-size:12.5px;line-height:1.85" oninput="onCharsInput()"
+        placeholder="例：&#10;【主人公・佐藤さくら（28歳・派遣社員）】&#10;性格：表面上は温厚だが、限界を超えると一気に爆発するタイプ。基本は敬語だが怒ると「じゃないですか！」「ありえなくないですか？」と語気が強くなる。&#10;口癖：「……まあ、いっか」（困ったときの口癖）／焦ると「あの、えっと」と繰り返す&#10;ナレーション口調：話しかけるような一人語り体。「〜なんですよね」「〜だったんです、実は」など柔らかめ&#10;&#10;【上司・田中部長（52歳）】&#10;性格：パワハラ体質。プライドが高く言い訳が多い。詰めるときは「だからさ〜」と馴れ馴れしい口調になる&#10;語尾：「〜だろ？」「〜じゃないか」「〜ってことだよ」&#10;&#10;【同僚・鈴木（30歳・正社員）】&#10;性格：優しいが気が弱い。さくらの味方だが板挟みになることが多い&#10;語尾：「〜だよね」「〜かな……」「〜じゃん？」"></textarea>
+      <div style="font-size:11px;color:var(--muted2);margin-top:6px;text-align:right" id="charsFooter">未記入（省略可・ただし口調精度が下がります）</div>
+    </div>
+  </div>
+
+  <!-- シナリオ設計パネル -->
+  <div class="card" id="designCard" style="transition:border-color .3s,box-shadow .3s">
+    <div class="card-header" style="cursor:pointer" onclick="toggleDesignPanel()">
+      <div class="card-header-left">
+        <span class="badge" id="designBadge" style="background:#38bdf822;border:1px solid #38bdf844;color:#38bdf8">📐 DESIGN</span>
+        <span class="section-label">シナリオ設計書</span>
+        <span id="designStatusBadge" style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#4b5563;background:#1f2937;border:1px solid #374151;border-radius:5px;padding:2px 8px;letter-spacing:0.06em">未入力</span>
+        <span id="designWarnText" style="font-size:10px;color:var(--muted2);margin-left:4px">（省略可。入力するとSTORY_BIBLEの精度が上がります）</span>
+      </div>
+      <span id="designPanelToggleLabel" style="font-size:12px;color:var(--muted2);font-family:monospace">▼ 開く</span>
+    </div>
+    <div id="designPanelBody" style="padding:14px 16px;display:none">
+      <div style="background:#0a1a0a;border:1px solid #1a3a1a;border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:12px;color:#86efac;line-height:1.7">
+        <div style="font-weight:700;margin-bottom:6px;color:#4ade80">📌 貼り付けのポイント</div>
+        <div>シナリオAppで生成した設計書（登場人物設計・7STEP構造・伏線証拠設計・制裁設計）をそのまま貼り付けてください。</div>
+        <div style="margin-top:4px">・入力すると生成前にSTORY_BIBLEが設計書から抽出されます</div>
+        <div>・未入力の場合は元シナリオから自動抽出されます（どちらでも整合性は保たれます）</div>
+      </div>
+      <textarea id="designInput" style="min-height:180px;font-size:12.5px;line-height:1.8" oninput="onDesignInput()"
+        placeholder="【登場人物設計】&#10;主人公：〇〇（年齢・立場・性格）&#10;悪役：〇〇（年齢・立場・性格）&#10;...&#10;&#10;【7STEP物語構造】&#10;STEP0：...&#10;&#10;【伏線・証拠設計】&#10;釣り針(1)：...&#10;釣り針(2)：...&#10;&#10;【制裁設計】&#10;..."></textarea>
+      <div style="font-size:11px;color:var(--muted2);margin-top:6px;text-align:right" id="designFooter">未記入（省略可）</div>
+    </div>
+  </div>
+
+  <!-- INPUT -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-header-left">
+        <span class="badge" style="background:#6b728022;border:1px solid #6b728044;color:#9ca3af">📄 INPUT</span>
+        <span class="section-label">元のシナリオを貼り付け</span>
+      </div>
+      <span class="char-count" id="inputCharCount" style="color:var(--muted2)">0文字</span>
+    </div>
+    <div class="card-body">
+      <textarea id="inputScript" style="min-height:200px"
+        placeholder="【キャラ名】「セリフ」&#10;===場面指示===&#10;&#10;の形式で記述された元のシナリオをここに貼り付けてください（2〜3万字が目安）"
+        oninput="updateInputCount()"></textarea>
+      <div style="display:flex;gap:16px;margin-top:10px;padding:8px 12px;background:#080b18;border-radius:7px;border:1px solid #1a1d38;flex-wrap:wrap">
+        <div style="font-size:11px;display:flex;gap:5px;align-items:center" id="checkScript" class="">
+          ○ シナリオ
+        </div>
+        <div style="font-size:11px;display:flex;gap:5px;align-items:center" id="checkChars" class="">
+          ⚠ キャラ設定（推奨）
+        </div>
+        <div style="font-size:11px;display:flex;gap:5px;align-items:center" id="checkDesign" class="">
+          ○ 設計書（任意）
+        </div>
+      </div>
+      <button class="generate-btn" id="generateBtn" onclick="startGenerate()" disabled>
+        ▶　圧縮・再編集を開始する（8フェーズ感情設計）
+      </button>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-box" id="errorBox" style="display:none"></div>
+
+  <!-- Progress -->
+  <div class="progress-bar" id="progressBar" style="display:none">
+    <div class="progress-header">
+      <span class="progress-label" id="progressLabel">生成中...</span>
+      <span class="progress-count" id="progressCount">0 / 5</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="phase-dots" id="phaseDots"></div>
+    <div id="countdownArea" style="display:none;align-items:center;gap:10px;margin-top:12px;padding:10px 14px;background:#0a0c1e;border:1px solid #2a1a00;border-radius:8px;"><span class="cd-label" style="font-size:12px;color:var(--amber);font-weight:600;flex:1"></span><span style="font-size:11px;color:var(--muted);white-space:nowrap">次まで</span><span class="cd-num" style="font-size:22px;font-weight:800;color:var(--amber);min-width:34px;text-align:right;line-height:1">0</span><span style="font-size:11px;color:var(--muted)">秒</span></div>
+    <div id="countdownBarWrap" style="margin-top:6px;height:3px;background:#1a1d38;border-radius:100px;overflow:hidden;display:none"><div id="countdownBarFill" style="height:100%;width:100%;background:linear-gradient(90deg,#f59e0b,#fbbf24);border-radius:100px;transition:width 0.9s linear"></div></div>
+  </div>
+
+
+  <!-- STORY_BIBLE 表示 -->
+  <div class="card" id="storyBibleCard" style="display:none;border-color:#38bdf840;box-shadow:0 0 16px #38bdf810">
+    <div class="card-header">
+      <div class="card-header-left">
+        <span class="badge" style="background:#38bdf822;border:1px solid #38bdf844;color:#38bdf8">📖 STORY_BIBLE</span>
+        <span class="section-label" style="color:#7dd3fc">ストーリー聖典（全フェーズ共通）</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px">生成前に抽出した整合性の軸。全フェーズのプロンプトにこの内容が共通渡しされています。</div>
+      <pre id="storyBibleDisplay" style="background:#080a18;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',monospace;font-size:11.5px;line-height:1.75;color:#94a3b8;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow-y:auto"></pre>
+    </div>
+  </div>
+
+  <!-- ① ダイジェスト -->
+  <div class="card" id="card-digest">
+    <div class="card-header">
+      <div class="card-header-left">
+        <span class="badge" id="badge-digest" style="background:#f59e0b22;border:1px solid #f59e0b44;color:#f59e0b">🎣 ①</span>
+        <span class="section-label">ダイジェスト（冒頭1分・最大の釣りポイント）</span>
+        <span class="phase-tag">フェーズ①</span>
+        <span class="generating-tag" id="gen-digest" style="display:none">⏳ 生成中...</span>
+      </div>
+      <button class="copy-btn" id="copyBtn-digest" onclick="copySection('digest')" disabled>コピー ①</button>
+    </div>
+    <div class="card-body">
+      <div id="output-digest" class="waiting">待機中</div>
+      <div class="meta-row" id="meta-digest" style="display:none">
+        <span class="char-count" id="chars-digest" style="color:var(--muted2)">0文字 <span class="char-sub">（純セリフ）</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 起承 -->
+  <div class="card" id="card-ki">
+    <div class="card-header">
+      <div class="card-header-left">
+        <span class="badge" style="background:#818cf822;border:1px solid #818cf844;color:#818cf8">📖 ②</span>
+        <span class="section-label">起承（導入〜怒りの蓄積）</span>
+        <span class="phase-tag">フェーズ②③</span>
+        <span class="generating-tag" id="gen-ki" style="display:none">⏳ 生成中...</span>
+      </div>
+      <button class="copy-btn" id="copyBtn-ki" onclick="copySection('ki')" disabled>コピー ②</button>
+    </div>
+    <div class="card-body">
+      <div class="sub-label">フェーズ② 日常・共感　→　フェーズ③ 事件・怒り</div>
+      <div id="output-ki" class="waiting">待機中</div>
+      <div class="meta-row" id="meta-ki" style="display:none">
+        <span class="char-count" id="chars-ki" style="color:var(--muted2)">0文字 <span class="char-sub">（純セリフ）</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 葛藤〜どん底 -->
+  <div class="card" id="card-sho">
+    <div class="card-header">
+      <div class="card-header-left">
+        <span class="badge" style="background:#38bdf822;border:1px solid #38bdf844;color:#38bdf8">🌊 ③</span>
+        <span class="section-label">葛藤〜どん底（感情の深掘り）</span>
+        <span class="phase-tag">フェーズ④⑤⑥</span>
+        <span class="generating-tag" id="gen-sho" style="display:none">⏳ 生成中...</span>
+      </div>
+      <button class="copy-btn" id="copyBtn-sho" onclick="copySection('sho')" disabled>コピー ③</button>
+    </div>
+    <div class="card-body">
+      <div class="sub-label">フェーズ④ 葛藤　→　フェーズ⑤ 転機・希望　→　フェーズ⑥ 追い討ち・どん底</div>
+      <div id="output-sho" class="waiting">待機中</div>
+      <div class="meta-row" id="meta-sho" style="display:none">
+        <span class="char-count" id="chars-sho" style="color:var(--muted2)">0文字 <span class="char-sub">（純セリフ）</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ④ 転・転2 -->
+  <div class="card" id="card-ten">
+    <div class="card-header">
+      <div class="card-header-left">
+        <span class="badge" style="background:#ef444422;border:1px solid #ef444444;color:#ef4444">🔥 ④</span>
+        <span class="section-label">転・転2（下剋上クライマックス）</span>
+        <span class="phase-tag">フェーズ⑦</span>
+        <span class="generating-tag" id="gen-ten" style="display:none">⏳ 生成中...</span>
+      </div>
+      <button class="copy-btn" id="copyBtn-ten" onclick="copySection('ten')" disabled>コピー ④</button>
+    </div>
+    <div class="card-body">
+      <div id="output-ten" class="waiting">待機中</div>
+      <div class="meta-row" id="meta-ten" style="display:none">
+        <span class="char-count" id="chars-ten" style="color:var(--muted2)">0文字 <span class="char-sub">（純セリフ）</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ 結 -->
+  <div class="card" id="card-ketsu">
+    <div class="card-header">
+      <div class="card-header-left">
+        <span class="badge" style="background:#10b98122;border:1px solid #10b98144;color:#10b981">✨ ⑤</span>
+        <span class="section-label">結・ハッピーエンド　＋　編集レポート</span>
+        <span class="phase-tag">フェーズ⑧</span>
+        <span class="generating-tag" id="gen-ketsu" style="display:none">⏳ 生成中...</span>
+      </div>
+      <button class="copy-btn" id="copyBtn-ketsu" onclick="copySection('ketsu')" disabled>コピー ⑤</button>
+    </div>
+    <div class="card-body">
+      <div id="output-ketsu" class="waiting">待機中</div>
+      <div class="meta-row" id="meta-ketsu" style="display:none">
+        <span class="char-count" id="chars-ketsu" style="color:var(--muted2)">0文字 <span class="char-sub">（純セリフ）</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Total -->
+  <div class="total-card" id="totalCard" style="display:none">
+    <div class="total-inner">
+      <div>
+        <div class="total-label">📊 合計文字数（純セリフのみ）</div>
+        <div>
+          <span class="total-num" id="totalNum">0</span>
+          <span class="total-unit">文字</span>
+        </div>
+        <div class="total-hint" id="totalHint">目標：8,000〜12,000文字</div>
+      </div>
+      <button class="copy-btn-lg" id="copyAllBtn" onclick="copyAll()" disabled>📋　全文をコピー</button>
+    </div>
+  </div>
+
+
+  <!-- スプシ用コピーカード -->
+  <div id="sheetExportCard" style="display:none;margin-bottom:18px">
+
+    <!-- タブ1: 台本 TSVコピー -->
+    <div class="card" style="border-color:#065f4640">
+      <div class="card-header">
+        <div class="card-header-left">
+          <span class="badge" style="background:#06564422;border:1px solid #06564444;color:#10b981">📋 SHEET TAB1</span>
+          <span class="section-label" style="color:#6ee7b7">台本タブ用コピー</span>
+          <span style="font-size:11px;color:var(--muted)">スプシのA1セルに貼り付けでOK</span>
+        </div>
+        <button id="copyTab1Btn" class="copy-btn" style="background:linear-gradient(135deg,#065f46,#047857)" onclick="copySheetTab1()">📋 台本をコピー</button>
+      </div>
+      <div class="card-body">
+        <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:8px">
+          A列：キャラ/指示　B列：セリフ　のTSV形式でコピーします。<br>
+          Googleスプレッドシートを開いてA1セルに貼り付けてください。
+        </div>
+        <div style="background:#080a18;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:11px;color:#94a3b8;max-height:140px;overflow-y:auto;font-family:monospace;line-height:1.6" id="tab1Preview"></div>
+      </div>
+    </div>
+
+    <!-- タブ2: 音声モデル ロール割り当て -->
+    <div class="card" style="border-color:#1e3a5f40;margin-top:0">
+      <div class="card-header">
+        <div class="card-header-left">
+          <span class="badge" style="background:#0c4a6e22;border:1px solid #0c4a6e44;color:#38bdf8">🎙 SHEET TAB2</span>
+          <span class="section-label" style="color:#7dd3fc">作品No音声モデルタブ用コピー</span>
+        </div>
+        <button id="copyTab2Btn" class="copy-btn" style="background:linear-gradient(135deg,#0c4a6e,#0369a1)" onclick="copySheetTab2()">📋 音声モデルをコピー</button>
+      </div>
+      <div class="card-body">
+        <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:12px">
+          台本から検出したキャラクターにロールを割り当ててください。<br>
+          voice_id・speed・emotion_tagは空欄のままコピーされます（GAS版で自動入力されます）。
+        </div>
+
+        <!-- ロール割り当てUI -->
+        <div id="roleAssignTable" style="margin-bottom:14px"></div>
+
+        <!-- プレビュー -->
+        <div style="font-size:11px;color:var(--muted2);margin-bottom:6px">コピー内容プレビュー：</div>
+        <div style="background:#080a18;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:11px;color:#94a3b8;max-height:200px;overflow-y:auto;font-family:monospace;line-height:1.7" id="tab2Preview"></div>
+      </div>
+    </div>
+
+  </div>
+
+</div><!-- /body -->
+
+<script>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 定数・状態
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const SECTIONS = ['digest','ki','sho','ten','ketsu'];
+const PHASE_LABELS = ['📖 STORY_BIBLE','① ダイジェスト','② 起（②③）','③ 承（④⑤⑥）','④ 転（⑦）','⑤ 結（⑧）'];
+const SECTION_HEIGHTS = { digest:200, ki:200, sho:240, ten:280, ketsu:220 };
+
+var outputs = { digest:'', ki:'', sho:'', ten:'', ketsu:'' };
+var isGenerating = false;
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 文字数カウント（純セリフのみ）
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function countChars(text) {
+  if (!text) return 0;
+  var t = text;
+  t = t.replace(/===[^=]*===/g, '');
+  t = t.replace(/【[^】]*】/g, '');
+  t = t.replace(/[「」]/g, '');
+  t = t.replace(/[\s\u3000\n\r。、！？…・『』（）()\[\]{}.,!?\-\u2014\u2015\uff5e\uff0d：:；;《》〈〉""'']/g, '');
+  return Array.from(t).length;
+}
+
+function fmtNum(n) { return n.toLocaleString('ja-JP'); }
+
+function charColor(count, min, max) {
+  if (count === 0) return 'var(--muted2)';
+  if (count < min)  return 'var(--amber)';
+  if (count <= max) return 'var(--teal)';
+  return 'var(--red)';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// APIキー管理
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function toggleApiKey() {
+  var body = document.getElementById('apiKeyBody');
+  var icon = document.getElementById('apiKeyIcon');
+  var label = document.getElementById('apiKeyToggleLabel');
+  var open = body.style.display === 'block';
+  body.style.display = open ? 'none' : 'block';
+  icon.textContent = open ? '▶' : '▼';
+  if (!open) {
+    var saved = localStorage.getItem('anthropic_api_key') || '';
+    document.getElementById('apiKeyInput').value = saved;
+    updateApiKeyStatus(saved);
+  }
+}
+
+function saveApiKey() {
+  var key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) { setApiKeyStatus('⚠️ キーを入力してください', 'var(--amber)'); return; }
+  if (!key.startsWith('sk-ant-')) { setApiKeyStatus('⚠️ キーの形式が正しくないようです（sk-ant- で始まるキーを入力してください）', 'var(--amber)'); return; }
+  localStorage.setItem('anthropic_api_key', key);
+  setApiKeyStatus('✅ 保存しました', 'var(--teal)');
+  updateGenerateBtn();
+  document.getElementById('apiKeyToggleLabel').textContent = '🔑 APIキー設定済み';
+  setTimeout(function() {
+    document.getElementById('apiKeyBody').style.display = 'none';
+    document.getElementById('apiKeyIcon').textContent = '▶';
+  }, 1200);
+}
+
+function setApiKeyStatus(msg, color) {
+  var el = document.getElementById('apiKeyStatus');
+  el.textContent = msg;
+  el.style.color = color;
+}
+
+function updateApiKeyStatus(key) {
+  if (key && key.startsWith('sk-ant-')) {
+    setApiKeyStatus('✅ APIキーが設定されています', 'var(--teal)');
+    document.getElementById('apiKeyToggleLabel').textContent = '🔑 APIキー設定済み';
+  } else {
+    setApiKeyStatus('APIキーが未設定です', 'var(--muted)');
+  }
+}
+
+function getApiKey() { return localStorage.getItem('anthropic_api_key') || ''; }
+
+function updateGenerateBtn() {
+  var script = document.getElementById('inputScript').value.trim();
+  var key    = getApiKey();
+  document.getElementById('generateBtn').disabled = (!script || !key || isGenerating);
+}
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// キャラクター設定パネル
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+var charsPanelOpen = true;
+
+function toggleCharsPanel() {
+  charsPanelOpen = !charsPanelOpen;
+  var body   = document.getElementById('charsPanelBody');
+  var toggle = document.getElementById('charsPanelToggleLabel');
+  body.style.display   = charsPanelOpen ? 'block' : 'none';
+  toggle.textContent   = charsPanelOpen ? '▲ 折りたたむ' : '▼ 開く';
+}
+
+function onCharsInput() {
+  var val      = document.getElementById('charsInput').value;
+  var hasChars = val.trim().length > 0;
+  var card     = document.getElementById('charsCard');
+  var badge    = document.getElementById('charsCastBadge');
+  var statusBadge = document.getElementById('charsStatusBadge');
+  var warnText = document.getElementById('charsWarnText');
+  var footer   = document.getElementById('charsFooter');
+
+  if (hasChars) {
+    card.style.borderColor = '#059669';
+    card.style.boxShadow   = '0 0 16px #05966920';
+    badge.style.background = '#064e3b30';
+    badge.style.borderColor = '#059669';
+    badge.style.color       = '#10b981';
+    statusBadge.textContent = '✓ 設定済み';
+    statusBadge.style.color       = '#34d399';
+    statusBadge.style.background  = '#064e3b30';
+    statusBadge.style.borderColor = '#059669';
+    warnText.style.display  = 'none';
+    footer.textContent = val.trim().length + ' 文字入力済み';
+  } else {
+    card.style.borderColor = 'var(--border)';
+    card.style.boxShadow   = 'none';
+    badge.style.background  = '#6b728022';
+    badge.style.borderColor = '#6b728044';
+    badge.style.color       = '#9ca3af';
+    statusBadge.textContent = '未設定';
+    statusBadge.style.color       = '#4b5563';
+    statusBadge.style.background  = '#1f2937';
+    statusBadge.style.borderColor = '#374151';
+    warnText.style.display  = 'inline';
+    footer.textContent = '未記入（省略可・ただし口調精度が下がります）';
+  }
+  updateCheckList();
+}
+
+function updateCheckList() {
+  var script   = document.getElementById('inputScript').value.trim();
+  var chars    = document.getElementById('charsInput').value.trim();
+  var hasScript = script.length > 0;
+  var hasChars  = chars.length > 0;
+
+  var checkScript = document.getElementById('checkScript');
+  var checkChars  = document.getElementById('checkChars');
+
+  if (checkScript) {
+    checkScript.textContent = hasScript ? '✓ シナリオ' : '○ シナリオ';
+    checkScript.style.color = hasScript ? 'var(--teal)' : 'var(--muted2)';
+  }
+  if (checkChars) {
+    checkChars.textContent = hasChars ? '✓ キャラ設定' : '⚠ キャラ設定（推奨）';
+    checkChars.style.color = hasChars ? 'var(--teal)' : 'var(--amber)';
+  }
+  var checkDesign = document.getElementById('checkDesign');
+  if (checkDesign) {
+    var hasDesign = document.getElementById('designInput') ? document.getElementById('designInput').value.trim().length > 0 : false;
+    checkDesign.textContent = hasDesign ? '✓ 設計書' : '○ 設計書（任意）';
+    checkDesign.style.color = hasDesign ? 'var(--teal)' : 'var(--muted2)';
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// INPUT 文字数
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// シナリオ設計パネル
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+var designPanelOpen = false;
+
+function toggleDesignPanel() {
+  designPanelOpen = !designPanelOpen;
+  var body   = document.getElementById('designPanelBody');
+  var toggle = document.getElementById('designPanelToggleLabel');
+  body.style.display = designPanelOpen ? 'block' : 'none';
+  toggle.textContent = designPanelOpen ? '▲ 折りたたむ' : '▼ 開く';
+}
+
+function onDesignInput() {
+  var val       = document.getElementById('designInput').value;
+  var hasDesign = val.trim().length > 0;
+  var card      = document.getElementById('designCard');
+  var badge     = document.getElementById('designBadge');
+  var statusBadge = document.getElementById('designStatusBadge');
+  var warnText  = document.getElementById('designWarnText');
+  var footer    = document.getElementById('designFooter');
+
+  if (hasDesign) {
+    card.style.borderColor  = '#0891b2';
+    card.style.boxShadow    = '0 0 16px #0891b210';
+    badge.style.background  = '#0c4a6e30';
+    badge.style.borderColor = '#0891b2';
+    badge.style.color       = '#38bdf8';
+    statusBadge.textContent = '✓ 入力済み';
+    statusBadge.style.color       = '#38bdf8';
+    statusBadge.style.background  = '#0c4a6e30';
+    statusBadge.style.borderColor = '#0891b2';
+    warnText.textContent = '（STORY_BIBLEを設計書から生成します）';
+    warnText.style.color = 'var(--teal)';
+    footer.textContent   = val.trim().length + ' 文字入力済み';
+  } else {
+    card.style.borderColor  = 'var(--border)';
+    card.style.boxShadow    = 'none';
+    badge.style.background  = '#38bdf822';
+    badge.style.borderColor = '#38bdf844';
+    badge.style.color       = '#38bdf8';
+    statusBadge.textContent = '未入力';
+    statusBadge.style.color       = '#4b5563';
+    statusBadge.style.background  = '#1f2937';
+    statusBadge.style.borderColor = '#374151';
+    warnText.textContent = '（省略可。入力するとSTORY_BIBLEの精度が上がります）';
+    warnText.style.color = 'var(--muted2)';
+    footer.textContent   = '未記入（省略可）';
+  }
+  updateCheckList();
+}
+
+function updateInputCount() {
+  var c = countChars(document.getElementById('inputScript').value);
+  var el = document.getElementById('inputCharCount');
+  el.textContent = fmtNum(c) + '文字';
+  el.style.color = charColor(c, 5000, 40000);
+  updateGenerateBtn();
+  updateCheckList();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PROMPTS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STORY_BIBLE 生成プロンプト
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function buildBiblePrompt(source, isDesignDoc) {
+  var label = isDesignDoc ? '【シナリオ設計書】' : '【元のシナリオ（設計書未入力のため自動抽出）】';
+  var fmt = 'あなたはシナリオ分析の専門家です。以下の' + (isDesignDoc ? 'シナリオ設計書' : 'シナリオ') + 'を分析し、\n'
+    + 'STORY_BIBLEとして以下の項目を簡潔にまとめてください。\n'
+    + '出力は以下のフォーマットのみ。説明・前置き・コメントは一切不要。\n\n'
+    + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+    + '【登場人物一覧】\n'
+    + '・主人公：名前（年齢・立場）性格・語調の特徴\n'
+    + '・悪役：名前（年齢・立場）性格・語調の特徴\n'
+    + '・理解者/証人：名前（立場）\n'
+    + '・上位審判者：名前（立場）\n'
+    + '・その他主要人物：名前（立場）\n\n'
+    + '【舞台・設定】\n'
+    + '（職場・業界・時代背景など核心設定を2〜3行で）\n\n'
+    + '【核心事件・問題】\n'
+    + '（主人公が受ける理不尽・事件の内容を具体的に）\n\n'
+    + '【伏線・釣り針】\n'
+    + '・釣り針(1)：\n'
+    + '・釣り針(2)：\n'
+    + '・その他伏線：\n\n'
+    + '【逆転の鍵・証拠】\n'
+    + '（どのような手段・証拠で逆転するか。具体的な方法の詳細は不要）\n\n'
+    + '【制裁・結末の方向性】\n'
+    + '（悪役がどのような制裁を受けるか。経済的/社会的/精神的）\n\n'
+    + '【感情設計の核心】\n'
+    + '（視聴者が最も感情移入するポイント・カタルシスの設計）\n'
+    + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n'
+    + label + '\n' + source;
+  return fmt;
+}
+// STORY_BIBLE をフェーズプロンプトに挿入するヘルパー
+function bibleBlock(storyBible) {
+  if (!storyBible) return '';
+  return '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+    + '【⚠ STORY_BIBLE（全フェーズ必ず遵守・キャラ名・設定・伏線の一貫性を保つこと）】\n'
+    + storyBible + '\n'
+    + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+}
+
+function buildSystemPrompt(chars) {
+  return `あなたは日本語スカッと系ドラマシナリオの専門編集者です。
+以下のルールをすべて厳守し、提供されたシナリオを編集・圧縮してください。
+
+━━━━━━━━━━━━━━━━━━━━━
+■ 最最重要：キャラクター設定の完全遵守
+━━━━━━━━━━━━━━━━━━━━━
+` + (chars ? `以下のキャラクター設定が提供されています。
+全てのセリフ・ナレーションはこの設定を最優先で遵守すること。
+
+【キャラクター設定】
+${chars}
+
+【適用ルール】
+・各キャラクターの語尾・口調・口癖を一言一句レベルで遵守すること
+・キャラクターの性格・感情傾向に基づいてセリフを再構築すること
+・元シナリオのセリフをそのまま流用することは原則禁止。
+  必ずそのキャラクターが実際に言いそうな自然な口語表現に作り直すこと
+・年齢・立場・関係性に応じた自然な話し言葉を使うこと
+` : `キャラクター設定が提供されていない場合でも、以下の口調ルールを適用すること。
+`) + `
+━━━━━━━━━━━━━━━━━━━━━
+■ 会話劇の自然さルール（最重要・全セリフに適用）
+━━━━━━━━━━━━━━━━━━━━━
+
+【絶対禁止：説明口調セリフ】
+以下のパターンは全て禁止。例外なく削除または書き換えること：
+・状況をそのまま言葉にした説明台詞
+  NG例）「あなたは今、私に対して理不尽な要求をしていますね」
+  NG例）「これは○○という状況です」
+  NG例）「つまりあなたは〜ということですか」（確認のみで感情ゼロ）
+・視聴者への解説になっているセリフ
+  NG例）「私が入社してから3年、ずっとこのような扱いを受けてきました」
+・前のセリフをほぼそのまま繰り返すリアクション
+  NG例）「え、昇進が取り消しになったって？」
+
+【絶対禁止：書き言葉・文語的表現】
+・「〜と申しますと？」「〜でございますね」等の過度に文語的な表現
+・親しい間柄なのにキャラ設定に合わない敬語
+・「〜なのですね」「〜ということですね」等の確認口調の多用
+
+【必須：口語会話劇として自然な表現に】
+・実際に人が口から発する言葉として自然かどうかを常に確認すること
+・感情・意志・反応がセリフに乗っていること
+・短くテンポよく。長い説明は台詞ではなくト書き（===指示===）に移動すること
+
+━━━━━━━━━━━━━━━━━━━━━
+■ ナレーション・語りの口調ルール
+━━━━━━━━━━━━━━━━━━━━━
+・ナレーションはキャラクターのモノローグまたは語り手として、
+  自然な「話し言葉」として書くこと
+・説明文・報告文は禁止。聞いている人に語りかけるような口調にすること
+  NG例）「桜の入社から3年が経過していた」
+  OK例）「あれから3年、ずっと我慢してたんです、私」
+  OK例）「まさかこんなことになるなんて、思ってもみなかったよね」
+・読み上げたとき自然にテンポよく聞こえる文体にすること
+
+━━━━━━━━━━━━━━━━━━━━━
+■ 最重要ルール：文字数カウントの定義
+━━━━━━━━━━━━━━━━━━━━━
+日本語1文字＝厳密に1文字としてカウントすること。
+例：「ア」=1文字 「あ」=1文字 「A」=1文字 「！」=1文字
+「アイウエオ」=5文字 「ありがとう」=6文字
+
+【カウント除外対象】
+以下はすべて文字数カウントから除外すること：
+・スペース（全角・半角問わず）
+・改行
+・記号（句読点・括弧・記号全般）
+・書式文字：【キャラクター名】の【】および名前部分
+・書式文字：セリフの「」
+・書式文字：===場面指示===の===および指示内テキスト
+
+【目標文字数】
+上記カウント除外対象を除いた純粋なセリフ・地の文のみの文字数を
+8,000文字以上12,000文字以内に収めること。
+この範囲を外れた場合は出力前に必ず再調整すること。
+範囲内に収まっていない出力は不完全な出力とみなす。
+
+━━━━━━━━━━━━━━━━━━━━━
+■ 書式ルール（厳守・いかなる変更も禁止）
+━━━━━━━━━━━━━━━━━━━━━
+  【キャラクター名】「セリフ」
+  ===場面・状況指示===
+・【】内のキャラクター名を変更しない
+・「」のセリフ記法を他の記法に変えない
+・===の場面指示記法を変えない
+・改行・段落構成を崩さない
+・上記以外の記法・記号を追加しない
+
+━━━━━━━━━━━━━━━━━━━━━
+■ 感情バロメーター（固定テンプレート・厳守）
+━━━━━━━━━━━━━━━━━━━━━
+フェーズ①【冒頭ダイジェスト：緊張・衝撃】
+フェーズ②【日常・共感】← 極力手短に。1〜2シーンで完結させ即③へ
+フェーズ③【事件・怒り】← 理不尽・不満・屈辱の蓄積
+フェーズ④【葛藤・落ち込み】← 主人公の弱さと人間味。個性クセを活用
+フェーズ⑤【転機・希望】← 「もしかして」という期待感
+フェーズ⑥【追い討ち・どん底】← ⑤の直後に必ず配置。希望→即どん底の落差を最大化
+フェーズ⑦【対決・逆転・カタルシス】← 感情爆発→悪役撃沈→逆転を一気に。主人公長台詞200〜400字を1〜2箇所
+フェーズ⑧【余韻・解決】← 極力手短に。A:恋愛匂わせ or B:ほっこり日常 を1つだけ末尾に添える
+
+━━━━━━━━━━━━━━━━━━━━━
+■ 冒頭ダイジェストルール（必須・最重要）
+━━━━━━━━━━━━━━━━━━━━━
+500〜800文字の釣りパートを新規書き下ろし。
+・複数の出来事を統合した衝撃的1シーンを新規作成する
+・逆転方法・復讐手段・解決手順は絶対に含めない
+・「なぜこうなったのか」がわからない疑問を残して終わらせる
+・説明的な文章・状況解説は1行たりとも含めない
+・末尾に必ず：===【冒頭ダイジェスト終了／本編開始】===
+
+━━━━━━━━━━━━━━━━━━━━━
+■ ユーモア配置ルール
+━━━━━━━━━━━━━━━━━━━━━
+・ユーモア担当キャラ最大2人、1人最大3個、全体最大3個
+・フェーズ⑦へのユーモア挿入は絶対禁止
+・シリアスシーンの直前/直後に配置して感情リセット効果を活用
+
+━━━━━━━━━━━━━━━━━━━━━
+■ セリフ品質改善ルール
+━━━━━━━━━━━━━━━━━━━━━
+・不自然な台詞（文語的・不適切な敬語）→ 自然な口語に
+・前セリフの繰り返しリアクション → 削除か感情的反応に置換
+・説明過多のセリフ → 感情ベースに変換かト書きに移動
+・冗長シーン（同内容の繰り返し・世間話） → 大胆にカット
+
+━━━━━━━━━━━━━━━━━━━━━
+■ 主人公の個性付与ルール
+━━━━━━━━━━━━━━━━━━━━━
+・「等身大の人間らしいクセ」を1つ創作し2〜4回登場させる
+・フェーズ④での人間味表現に優先活用
+・フェーズ⑦で長台詞（200〜400字）を1〜2箇所設ける
+
+━━━━━━━━━━━━━━━━━━━━━
+■ 出力形式（厳守）
+━━━━━━━━━━━━━━━━━━━━━
+・シナリオ本文の途中に説明・コメント・見出しを挿入しない
+・出力の最後に編集レポートを付記する：
+  ―――――――――――――――――――
+  【編集後文字数：●●●●文字】
+  【ユーモア担当キャラクター：〇〇・〇〇】
+  【ユーモア配置：フェーズ●／フェーズ●／フェーズ●】
+  【主人公付与個性：〇〇〇〇〇〇】
+  ―――――――――――――――――――`;
+}
+
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// charReminder ヘルパー（全フェーズプロンプトに挿入）
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function charReminder(chars) {
+  if (chars) {
+    return '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+      + '【⚠ キャラクター設定（全セリフで必ず遵守）】\n'
+      + chars + '\n'
+      + '・元シナリオのセリフをそのまま流用禁止。必ず各キャラの口調で再構築すること\n'
+      + '・説明口調・書き言葉・確認のみのリアクション台詞は全て排除すること\n'
+      + '・ナレーションは話し言葉として自然な語りにすること\n'
+      + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+  } else {
+    return '\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+      + '【⚠ セリフ品質チェック（全セリフに適用）】\n'
+      + '・説明口調・書き言葉・確認のみのリアクション台詞は全て排除すること\n'
+      + '・ナレーションは話し言葉として自然な語りにすること\n'
+      + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n';
+  }
+}
+
+function buildDigestPrompt(script, chars, storyBible) {
+  return bibleBlock(storyBible) + charReminder(chars) + '以下の元シナリオを精読し、【フェーズ①：冒頭ダイジェスト】のみを新規書き下ろしで出力してください。\n\n'
+    + '■ 制作指示\n'
+    + '1. 「主人公が最も酷い扱いを受けるシーン」または「悪役が最も追い詰められるシーン」を参照し、別々のタイムラインの複数の出来事を統合・再構成して衝撃的な1シーンとして新規作成する\n'
+    + '2. 大袈裟な演出・台詞を加えて衝撃度を最大化する\n'
+    + '3. 逆転の方法・復讐の手段・問題解決の手順は絶対に含めないこと\n'
+    + '4. 「なぜこうなったのか」がわからない疑問が残る状態で終わらせること\n'
+    + '5. 説明的な文章・状況解説・導入的な会話は1行たりとも含めないこと\n'
+    + '6. 末尾に必ず挿入：===【冒頭ダイジェスト終了／本編開始】===\n'
+    + '■ 文字数目標（純セリフのみ）：500〜800文字\n\n'
+    + '【元のシナリオ】\n' + script + '\n\n'
+    + 'フェーズ①のテキストのみを出力すること。説明・前置き・コメントは一切不要。';
+}
+
+function buildKiPrompt(script, chars, digest, storyBible) {
+  return bibleBlock(storyBible) + charReminder(chars) + '以下の元シナリオと作成済み冒頭ダイジェストを踏まえ、【フェーズ②：日常・共感】と【フェーズ③：事件・怒り】を続けて出力してください。\n\n'
+    + '【フェーズ② 指示 — 日常・共感】\n'
+    + '・極力手短に。1〜2シーンで完結させ即③へ\n・主人公の人物像・環境を最小限伝える\n・個性クセの初出をここで検討\n・文字数目安：400〜700文字\n\n'
+    + '【フェーズ③ 指示 — 事件・怒り】\n'
+    + '・理不尽・不満・屈辱の蓄積\n・悪役の横暴を鮮明に描く\n・冒頭ダイジェストで使用した場面は省略または圧縮（重複禁止）\n・文字数目安：1,200〜1,800文字\n\n'
+    + '【作成済み：冒頭ダイジェスト（重複禁止）】\n' + digest + '\n\n'
+    + '【元のシナリオ】\n' + script + '\n\n'
+    + 'フェーズ②③のテキストのみを続けて出力すること。見出しは不要。';
+}
+
+function buildShoPrompt(script, chars, digest, ki, storyBible) {
+  return bibleBlock(storyBible) + charReminder(chars) + '以下の元シナリオと作成済みパートを踏まえ、【フェーズ④：葛藤・落ち込み】【フェーズ⑤：転機・希望】【フェーズ⑥：追い討ち・どん底】を続けて出力してください。\n\n'
+    + '【フェーズ④ 指示 — 葛藤・落ち込み】\n・主人公の弱さと人間味\n・個性クセを活用\n・必要ならユーモアを1つ配置\n・文字数目安：900〜1,300文字\n\n'
+    + '【フェーズ⑤ 指示 — 転機・希望】\n・「もしかして逆転できるかも」という期待感\n・⑥との落差を最大化するため希望感を高めに\n・文字数目安：700〜1,000文字\n\n'
+    + '【フェーズ⑥ 指示 — 追い討ち・どん底（重要）】\n・⑤の直後に必ず配置\n・希望を打ち砕く裏切り・絶望\n・希望→即どん底の落差を最大化\n・⑦への感情的助走として機能させる\n・文字数目安：900〜1,300文字\n\n'
+    + '【作成済みパート（重複禁止）】\n'
+    + '≪冒頭末尾≫ ' + digest.slice(-150) + '\n'
+    + '≪フェーズ②③末尾≫ ' + ki.slice(-200) + '\n\n'
+    + '【元のシナリオ】\n' + script + '\n\n'
+    + 'フェーズ④⑤⑥のテキストのみを続けて出力すること。見出しは不要。';
+}
+
+function buildTenPrompt(script, chars, ki, sho, storyBible) {
+  return bibleBlock(storyBible) + charReminder(chars) + '以下の元シナリオと作成済みパートを踏まえ、【フェーズ⑦：対決・逆転・カタルシス】のみを出力してください。\n\n'
+    + '■ 制作指示（最重要・クライマックス）\n'
+    + '・===転1：反撃の始まり=== と ===転2：完全崩壊=== のト書きで2段階に区切ること\n'
+    + '・転1：主人公が反撃開始→形勢逆転→悪役が動揺\n'
+    + '・転2：悪役の感情的崩壊（誇張表現）→主人公の長台詞200〜400字→爽快感最高潮\n'
+    + '・このフェーズ中にユーモアを挿入することは絶対禁止\n'
+    + '・文字数目安：2,500〜3,500文字\n\n'
+    + '【作成済みパート（流れ把握用）】\n'
+    + '≪フェーズ②③末尾≫ ...' + ki.slice(-200) + '\n'
+    + '≪フェーズ④⑤⑥末尾≫ ...' + sho.slice(-200) + '\n\n'
+    + '【元のシナリオ】\n' + script + '\n\n'
+    + 'フェーズ⑦のテキストのみを出力すること。';
+}
+
+function buildKetsuPrompt(script, chars, ten, storyBible) {
+  return bibleBlock(storyBible) + charReminder(chars) + '以下の元シナリオと転パートを踏まえ、【フェーズ⑧：余韻・解決】を出力し、末尾に編集レポートを付記してください。\n\n'
+    + '■ 制作指示\n'
+    + '・極力手短に。⑦のカタルシスの余韻を壊さない\n'
+    + '・悪役への制裁・因果応報を端的に描写\n'
+    + '・末尾に A:恋愛匂わせ または B:ほっこり日常 を1つだけ（匂わせ程度にとどめる）\n'
+    + '・文字数目安：1,200〜1,800文字\n\n'
+    + '【フェーズ⑦（直前の流れ）】\n' + ten.slice(-400) + '\n\n'
+    + '【元のシナリオ】\n' + script + '\n\n'
+    + 'フェーズ⑧のテキストを出力後、必ず以下の編集レポートを付記すること：\n\n'
+    + '―――――――――――――――――――\n'
+    + '【編集後文字数：●●●●文字】\n'
+    + '【ユーモア担当キャラクター：〇〇・〇〇】\n'
+    + '【ユーモア配置：フェーズ●／フェーズ●／フェーズ●】\n'
+    + '【主人公付与個性：〇〇〇〇〇〇】\n'
+    + '―――――――――――――――――――';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// カウントダウン待機（レート制限対策）
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+var PHASE_WAIT_SEC  = 65;  // フェーズ間の通常待機（秒）
+var RETRY_WAIT_SEC  = 70;  // レート制限エラー時の待機（秒）
+var MAX_RETRY       = 3;   // 最大リトライ回数
+
+function setCountdown(sec, label) {
+  var el  = document.getElementById('countdownArea');
+  var bar = document.getElementById('countdownBarWrap');
+  var fill = document.getElementById('countdownBarFill');
+  if (!el || !bar) return;
+  if (sec <= 0) { el.style.display = 'none'; bar.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  bar.style.display = 'block';
+  el.querySelector('.cd-label').textContent = label;
+  el.querySelector('.cd-num').textContent = sec;
+  if (fill) fill.style.width = '100%';
+}
+
+function updateCountdownTick(sec, total) {
+  var el   = document.getElementById('countdownArea');
+  var fill = document.getElementById('countdownBarFill');
+  if (!el) return;
+  el.querySelector('.cd-num').textContent = sec;
+  if (fill) fill.style.width = (sec / total * 100) + '%';
+}
+
+function waitWithCountdown(totalSec, label) {
+  return new Promise(function(resolve) {
+    setCountdown(totalSec, label);
+    var remaining = totalSec;
+    var timer = setInterval(function() {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(timer);
+        setCountdown(0, '');
+        resolve();
+      } else {
+        updateCountdownTick(remaining, totalSec);
+      }
+    }, 1000);
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// API呼び出し（レート制限時は自動リトライ）
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function callAPI(prompt, chars) {
+  var key = getApiKey();
+  if (!key) throw new Error('APIキーが設定されていません。画面上部の「APIキーを設定する」から設定してください。');
+
+  for (var attempt = 0; attempt <= MAX_RETRY; attempt++) {
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 16000,
+        system: buildSystemPrompt(chars),
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    // レート制限（429）→ カウントダウン後にリトライ
+    if (res.status === 429) {
+      if (attempt >= MAX_RETRY) throw new Error('レート制限が続いています。しばらく時間をおいてから再試行してください。');
+      var retryAfter = parseInt(res.headers.get('retry-after') || '0', 10);
+      var waitSec = retryAfter > 0 ? retryAfter + 5 : RETRY_WAIT_SEC;
+      await waitWithCountdown(waitSec, '⚠️ レート制限 — 自動リトライ待機中... (' + (attempt + 1) + '/' + MAX_RETRY + ')');
+      continue;
+    }
+
+    if (!res.ok) {
+      var e = await res.json().catch(function(){ return {}; });
+      throw new Error(e.error ? e.error.message : 'HTTP ' + res.status);
+    }
+    var data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    return data.content[0].text.trim();
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// UI ヘルパー
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function setPhase(idx, state) {
+  var dots = document.getElementById('phaseDots').querySelectorAll('.phase-dot');
+  if (dots[idx]) {
+    dots[idx].className = 'phase-dot' + (state === 'done' ? ' done' : state === 'active' ? ' active' : '');
+    dots[idx].querySelector('.dot-icon').textContent = state === 'done' ? '✓' : state === 'active' ? '⏳' : '○';
+  }
+}
+
+function setProgress(done, total, label) {
+  document.getElementById('progressFill').style.width = (done / total * 100) + '%';
+  document.getElementById('progressCount').textContent = done + ' / ' + total;
+  document.getElementById('progressLabel').textContent = label;
+}
+
+function showGenerating(key, show) {
+  document.getElementById('gen-' + key).style.display = show ? 'inline' : 'none';
+}
+
+function renderOutput(key, text) {
+  var container = document.getElementById('output-' + key);
+  container.innerHTML = '';
+  var ta = document.createElement('textarea');
+  ta.style.minHeight = SECTION_HEIGHTS[key] + 'px';
+  ta.style.fontSize = '12.5px';
+  ta.style.lineHeight = '1.8';
+  ta.value = text;
+  ta.spellcheck = false;
+  ta.addEventListener('input', function() {
+    outputs[key] = ta.value;
+    updateCharCount(key);
+    updateTotal();
+  });
+  container.appendChild(ta);
+  document.getElementById('meta-' + key).style.display = 'flex';
+  updateCharCount(key);
+}
+
+function updateCharCount(key) {
+  var c = countChars(outputs[key]);
+  var el = document.getElementById('chars-' + key);
+  el.style.color = charColor(c, 400, 3600);
+  el.innerHTML = fmtNum(c) + '文字 <span class="char-sub">（純セリフ）</span>';
+}
+
+function updateTotal() {
+  var total = SECTIONS.reduce(function(sum, k){ return sum + countChars(outputs[k]); }, 0);
+  var anyOutput = SECTIONS.some(function(k){ return outputs[k]; });
+  if (!anyOutput) { document.getElementById('totalCard').style.display = 'none'; return; }
+  document.getElementById('totalCard').style.display = 'block';
+  var el = document.getElementById('totalNum');
+  el.textContent = fmtNum(total);
+  el.style.color = total === 0 ? 'var(--muted2)' : total < 7500 ? 'var(--amber)' : total <= 12500 ? 'var(--purple3)' : 'var(--red)';
+  var hint = '目標：8,000〜12,000文字';
+  if (total > 0) hint += total < 7500 ? '　⚠ 少なめ' : total <= 12500 ? '　✓ 適正範囲' : '　⚠ 多め';
+  document.getElementById('totalHint').textContent = hint;
+  document.getElementById('totalHint').style.color = total < 7500 ? 'var(--amber)' : total <= 12500 ? 'var(--teal)' : 'var(--red)';
+  document.getElementById('copyAllBtn').disabled = !anyOutput;
+}
+
+function activateCard(key, color) {
+  var card = document.getElementById('card-' + key);
+  card.style.borderColor = color + '60';
+  card.style.boxShadow = '0 0 20px ' + color + '20';
+}
+function deactivateCard(key) {
+  var card = document.getElementById('card-' + key);
+  card.style.borderColor = 'var(--border)';
+  card.style.boxShadow = 'none';
+}
+
+var CARD_COLORS = { digest:'#f59e0b', ki:'#818cf8', sho:'#38bdf8', ten:'#ef4444', ketsu:'#10b981' };
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// メイン生成
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function startGenerate() {
+  if (isGenerating) return;
+  var script = document.getElementById('inputScript').value.trim();
+  var chars  = document.getElementById('charsInput').value.trim();
+  if (!script) return;
+  var key = getApiKey();
+  if (!key) {
+    document.getElementById('apiKeyBody').style.display = 'block';
+    document.getElementById('apiKeyIcon').textContent = '▼';
+    setApiKeyStatus('⚠️ 先にAPIキーを設定してください', 'var(--amber)');
+    return;
+  }
+
+  isGenerating = true;
+  document.getElementById('generateBtn').disabled = true;
+  document.getElementById('generateBtn').textContent = '⏳　生成中...';
+  document.getElementById('errorBox').style.display = 'none';
+
+  // 状態リセット
+  outputs = { digest:'', ki:'', sho:'', ten:'', ketsu:'' };
+  SECTIONS.forEach(function(k) {
+    var c = document.getElementById('output-' + k);
+    c.className = 'waiting';
+    c.textContent = '待機中';
+    document.getElementById('meta-' + k).style.display = 'none';
+    document.getElementById('copyBtn-' + k).disabled = true;
+    document.getElementById('gen-' + k).style.display = 'none';
+    deactivateCard(k);
+  });
+  document.getElementById('totalCard').style.display = 'none';
+
+  // プログレスバー初期化（6ステップ）
+  var pb = document.getElementById('progressBar');
+  pb.style.display = 'block';
+  var dotsHtml = PHASE_LABELS.map(function(l) {
+    return '<div class="phase-dot"><span class="dot-icon">○</span> ' + l + '</div>';
+  }).join('');
+  document.getElementById('phaseDots').innerHTML = dotsHtml;
+  setProgress(0, 6, '準備中...');
+
+  var steps = [
+    { key:'digest', label:'① ダイジェスト を生成中...' },
+    { key:'ki',     label:'② 起承 を生成中...' },
+    { key:'sho',    label:'③ 葛藤〜どん底 を生成中...' },
+    { key:'ten',    label:'④ 転・転2 を生成中...' },
+    { key:'ketsu',  label:'⑤ 結 を生成中...' },
+  ];
+
+  try {
+    // ── STEP 0: STORY_BIBLE 生成（常に実行）──────────────────
+    setPhase(0, 'active');
+    var designInput = document.getElementById('designInput').value.trim();
+    var isDesignDoc = designInput.length > 0;
+    var bibleSource = isDesignDoc ? designInput : script;
+    var bibleLabel  = isDesignDoc ? '📐 STORY_BIBLE を設計書から生成中...' : '📐 STORY_BIBLE を元シナリオから抽出中...';
+    setProgress(0, 6, bibleLabel);
+
+    var storyBible = await callAPI(buildBiblePrompt(bibleSource, isDesignDoc), chars);
+    setPhase(0, 'done');
+    setProgress(1, 6, 'STORY_BIBLE 生成完了');
+
+    // STORY_BIBLEを画面に表示
+    var bibleDisplay = document.getElementById('storyBibleDisplay');
+    if (bibleDisplay) {
+      bibleDisplay.textContent = storyBible;
+      document.getElementById('storyBibleCard').style.display = 'block';
+    }
+
+    await waitWithCountdown(PHASE_WAIT_SEC, '⏱ フェーズ生成まで待機中（レート制限対策）...');
+
+    // ── STEP 1〜5: 各フェーズ生成 ────────────────────────────
+    for (var i = 0; i < steps.length; i++) {
+      var step = steps[i];
+      setPhase(i + 1, 'active');
+      setProgress(i + 1, 6, step.label);
+      showGenerating(step.key, true);
+      activateCard(step.key, CARD_COLORS[step.key]);
+
+      var prompt;
+      if (step.key === 'digest') {
+        prompt = buildDigestPrompt(script, chars, storyBible);
+      } else if (step.key === 'ki') {
+        prompt = buildKiPrompt(script, chars, outputs.digest, storyBible);
+      } else if (step.key === 'sho') {
+        prompt = buildShoPrompt(script, chars, outputs.digest, outputs.ki, storyBible);
+      } else if (step.key === 'ten') {
+        prompt = buildTenPrompt(script, chars, outputs.ki, outputs.sho, storyBible);
+      } else {
+        prompt = buildKetsuPrompt(script, chars, outputs.ten, storyBible);
+      }
+
+      var result = await callAPI(prompt, chars);
+      outputs[step.key] = result;
+
+      showGenerating(step.key, false);
+      deactivateCard(step.key);
+      renderOutput(step.key, result);
+      document.getElementById('copyBtn-' + step.key).disabled = false;
+      setPhase(i + 1, 'done');
+      setProgress(i + 2, 6, step.label);
+      updateTotal();
+
+      // 最後のフェーズ以外はレート制限対策の待機
+      if (i < steps.length - 1) {
+        await waitWithCountdown(PHASE_WAIT_SEC, '⏱ 次のフェーズまで待機中（レート制限対策）...');
+      }
+    }
+
+    setProgress(6, 6, '✅ 全フェーズ生成完了');
+    initSheetExport();
+
+  } catch(e) {
+    var errBox = document.getElementById('errorBox');
+    errBox.style.display = 'block';
+    errBox.textContent = '⚠️ エラー: ' + e.message;
+    SECTIONS.forEach(function(k){ showGenerating(k, false); deactivateCard(k); });
+  }
+
+  isGenerating = false;
+  document.getElementById('generateBtn').disabled = false;
+  document.getElementById('generateBtn').textContent = '▶　圧縮・再編集を開始する（8フェーズ感情設計）';
+  updateGenerateBtn();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// コピー
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function copySection(key) {
+  var text = outputs[key];
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(function() {
+    var btn = document.getElementById('copyBtn-' + key);
+    var orig = btn.textContent;
+    btn.textContent = '✓ コピー完了！';
+    btn.classList.add('copied');
+    setTimeout(function(){ btn.textContent = orig; btn.classList.remove('copied'); }, 2200);
+  });
+}
+
+function copyAll() {
+  var text = SECTIONS.map(function(k){ return outputs[k]; }).filter(Boolean).join('\n\n');
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(function() {
+    var btn = document.getElementById('copyAllBtn');
+    btn.textContent = '✓ コピー完了！';
+    btn.classList.add('copied');
+    setTimeout(function(){ btn.textContent = '📋　全文をコピー'; btn.classList.remove('copied'); }, 2200);
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 初期化
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+window.addEventListener('load', function() {
+  var saved = localStorage.getItem('anthropic_api_key') || '';
+  if (saved) {
+    document.getElementById('apiKeyToggleLabel').textContent = '🔑 APIキー設定済み';
+  }
+  updateGenerateBtn();
+  updateCheckList();
+});
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// スプシ用コピー機能
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+var ROLE_OPTIONS = [
+  { value: '',        label: '── 未割り当て ──' },
+  { value: 'MAIN',    label: '[MAIN]　主人公' },
+  { value: 'HERO',    label: '[HERO]　ヒーロー/ヒロイン' },
+  { value: 'VILLAIN', label: '[VILLAIN]　悪役' },
+  { value: 'KEY1',    label: '[KEY1]　キーパーソン1' },
+  { value: 'MOB_YM',  label: '[MOB_YM]　モブ・若い男' },
+  { value: 'MOB_OM',  label: '[MOB_OM]　モブ・年配の男' },
+  { value: 'MOB_YF',  label: '[MOB_YF]　モブ・若い女' },
+  { value: 'MOB_OF',  label: '[MOB_OF]　モブ・年配の女' },
+];
+
+var ROLE_TAGS = {
+  'MAIN':    'MAIN',
+  'HERO':    'HERO',
+  'VILLAIN': 'VILLAIN',
+  'KEY1':    'KEY1',
+  'MOB_YM':  'MOB_YM',
+  'MOB_OM':  'MOB_OM',
+  'MOB_YF':  'MOB_YF',
+  'MOB_OF':  'MOB_OF',
+};
+
+
+// セリフ文字数用LEN+SUBSTITUTE数式を生成（GAS版と同一仕様）
+function buildLenFormula(cellRef) {
+  var subs = ['\u300c','\u300d','\u3001','\u3002','\uff01','\uff1f',
+              '\u2026','\u30fb','\u3000',' ','\u300e','\u300f',
+              '\uff08','\uff09','\u3010','\u3011','\u2015','\uff5e'];
+  var inner = cellRef;
+  for (var i = 0; i < subs.length; i++) {
+    inner = 'SUBSTITUTE(' + inner + ',"' + subs[i] + '","")';
+  }
+  return '=LEN(' + inner + ')';
+}
+
+// ---- 台本 → TSV行配列（GAS版parseScriptToRowsと同ロジック）----
+// ===で始まる行は先頭に半角スペースを付与（Sheetsの数式誤認対策）
+function parseScriptToRows(text) {
+  if (!text) return [];
+  var lines = text.split('\n');
+  var rows  = [];
+  for (var i = 0; i < lines.length; i++) {
+    var trimmed = lines[i].trim();
+    if (!trimmed) continue;
+    if (trimmed.startsWith('===')) {
+      // 先頭に半角スペースを付けて数式誤認を防ぐ
+      rows.push([' ' + trimmed, '']);
+      continue;
+    }
+    // 【キャラ名】「セリフ」形式
+    var m = trimmed.match(/^(\u3010[^\u3011]*\u3011)\u300c([\s\S]*)\u300d\s*$/);
+    if (m) { rows.push([m[1], m[2]]); continue; }
+    // 【キャラ名】セリフ（「」なし）
+    var m2 = trimmed.match(/^(\u3010[^\u3011]*\u3011)(.*)$/);
+    if (m2) {
+      var rest = m2[2].trim().replace(/^\u300c/, '').replace(/\u300d$/, '');
+      rows.push([m2[1], rest]);
+      continue;
+    }
+    // それ以外（地の文など）
+    rows.push([trimmed, '']);
+  }
+  return rows;
+}
+
+// ---- 台本からキャラ名一覧を抽出 ----
+function extractCharNames(text) {
+  if (!text) return [];
+  var matches = text.match(/\u3010([^\u3011]+)\u3011/g) || [];
+  var seen = {};
+  var names = [];
+  for (var i = 0; i < matches.length; i++) {
+    var name = matches[i].replace(/\u3010|\u3011/g, '').trim();
+    if (!seen[name]) { seen[name] = true; names.push(name); }
+  }
+  return names;
+}
+
+// ---- スプシカードを初期化（全フェーズ完了後に呼ぶ）----
+function initSheetExport() {
+  var fullText = SECTIONS.map(function(k){ return outputs[k]; }).filter(Boolean).join('\n\n');
+  if (!fullText) return;
+
+  // カード表示
+  document.getElementById('sheetExportCard').style.display = 'block';
+
+  // タブ1プレビュー
+  var rows = parseScriptToRows(fullText);
+  var preview1 = rows.slice(0, 8).map(function(r, i) {
+    var rowNum = i + 2;
+    return (r[0] || '').slice(0, 24) + '\t' + (r[1] || '').slice(0, 16)
+      + '\t[LEN数式]\t[SUM累計]';
+  }).join('\n') + (rows.length > 8 ? '\n...' + (rows.length - 8) + '行省略' : '');
+  document.getElementById('tab1Preview').textContent =
+    'キャラ／指示\tセリフ\t文字数\t累計\n' + preview1;
+
+  // タブ2: キャラ名抽出 → ロール割り当てUI構築
+  var chars = extractCharNames(fullText);
+  buildRoleAssignUI(chars);
+  updateTab2Preview();
+}
+
+// ---- ロール割り当てUIを構築 ----
+function buildRoleAssignUI(charNames) {
+  var container = document.getElementById('roleAssignTable');
+  container.innerHTML = '';
+
+  if (charNames.length === 0) {
+    container.innerHTML = '<div style="font-size:12px;color:var(--muted2)">キャラクターが検出されませんでした</div>';
+    return;
+  }
+
+  var table = document.createElement('table');
+  table.style.cssText = 'width:100%;border-collapse:collapse;font-size:12px';
+
+  // ヘッダー
+  var thead = '<thead><tr>'
+    + '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #1a1d38;color:var(--muted);font-weight:600;font-size:11px">キャラ名</th>'
+    + '<th style="text-align:left;padding:6px 8px;border-bottom:1px solid #1a1d38;color:var(--muted);font-weight:600;font-size:11px">ロール割り当て</th>'
+    + '</tr></thead>';
+  table.innerHTML = thead;
+
+  var tbody = document.createElement('tbody');
+  charNames.forEach(function(name, idx) {
+    var tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid #1a1d3820';
+
+    // キャラ名セル
+    var tdName = document.createElement('td');
+    tdName.style.cssText = 'padding:6px 8px;color:var(--text2);font-size:12.5px';
+    tdName.textContent = '【' + name + '】';
+
+    // ドロップダウンセル
+    var tdRole = document.createElement('td');
+    tdRole.style.padding = '5px 8px';
+
+    var sel = document.createElement('select');
+    sel.id = 'role_' + idx;
+    sel.dataset.charname = name;
+    sel.style.cssText = 'background:#080a18;border:1px solid var(--border);border-radius:6px;'
+      + 'color:var(--text2);font-size:12px;padding:5px 8px;width:100%;outline:none;cursor:pointer';
+    sel.onchange = updateTab2Preview;
+
+    ROLE_OPTIONS.forEach(function(opt) {
+      var o = document.createElement('option');
+      o.value = opt.value;
+      o.textContent = opt.label;
+      sel.appendChild(o);
+    });
+
+    tdRole.appendChild(sel);
+    tr.appendChild(tdName);
+    tr.appendChild(tdRole);
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  container.appendChild(table);
+}
+
+// ---- タブ2プレビュー更新 ----
+function updateTab2Preview() {
+  var rows = buildTab2Rows();
+  var lines = ['タグ\tキャラ名\tvoice_id\tspeed\temotion_tag'];
+  rows.forEach(function(r) { lines.push(r.join('\t')); });
+  document.getElementById('tab2Preview').textContent = lines.join('\n');
+}
+
+// ---- タブ2行データを構築 ----
+function buildTab2Rows() {
+  // ロール→キャラ名のマッピングを収集
+  var roleMap = {};
+  var sels = document.querySelectorAll('[id^="role_"]');
+  sels.forEach(function(sel) {
+    if (sel.value) {
+      roleMap[sel.value] = '【' + sel.dataset.charname + '】';
+    }
+  });
+
+  var tagOrder = ['MAIN','HERO','VILLAIN','KEY1','MOB_YM','MOB_OM','MOB_YF','MOB_OF'];
+  return tagOrder.map(function(role) {
+    return [
+      ROLE_TAGS[role],
+      roleMap[role] || '',
+      '',  // voice_id（GAS版で自動入力）
+      '',  // speed（GAS版で自動入力）
+      '',  // emotion_tag（話数ごとに設定）
+    ];
+  });
+}
+
+// ---- タブ1コピー ----
+function copySheetTab1() {
+  var fullText = SECTIONS.map(function(k){ return outputs[k]; }).filter(Boolean).join('\n\n');
+  var rows = parseScriptToRows(fullText);
+  // ヘッダー行（A〜D列）
+  var lines = ['キャラ／指示\tセリフ\t文字数\t累計文字数'];
+  // データ行：C列=LEN数式、D列=SUM累計数式
+  for (var i = 0; i < rows.length; i++) {
+    var rowNum = i + 2; // スプシはA1貼り付け前提なのでデータはrow2〜
+    var cFormula = buildLenFormula('B' + rowNum);
+    var dFormula = '=SUM($C$2:C' + rowNum + ')';
+    lines.push(rows[i][0] + '\t' + rows[i][1] + '\t' + cFormula + '\t' + dFormula);
+  }
+  var tsv = lines.join('\n');
+
+  navigator.clipboard.writeText(tsv).then(function() {
+    var btn = document.getElementById('copyTab1Btn');
+    btn.textContent = '✓ コピー完了！';
+    btn.style.background = 'linear-gradient(135deg,#059669,#047857)';
+    setTimeout(function() {
+      btn.textContent = '📋 台本をコピー';
+      btn.style.background = 'linear-gradient(135deg,#065f46,#047857)';
+    }, 2200);
+  }).catch(function() {
+    alert('コピーに失敗しました。ブラウザのクリップボード許可を確認してください。');
+  });
+}
+
+// ---- タブ2コピー ----
+function copySheetTab2() {
+  var rows = buildTab2Rows();
+  var tsv  = 'タグ\tキャラ名\tvoice_id\tspeed\temotion_tag\n'
+    + rows.map(function(r){ return r.join('\t'); }).join('\n');
+
+  navigator.clipboard.writeText(tsv).then(function() {
+    var btn = document.getElementById('copyTab2Btn');
+    btn.textContent = '✓ コピー完了！';
+    btn.style.background = 'linear-gradient(135deg,#059669,#047857)';
+    setTimeout(function() {
+      btn.textContent = '📋 音声モデルをコピー';
+      btn.style.background = 'linear-gradient(135deg,#0c4a6e,#0369a1)';
+    }, 2200);
+  }).catch(function() {
+    alert('コピーに失敗しました。ブラウザのクリップボード許可を確認してください。');
+  });
+}
+
+</script>
+</body>
+</html>

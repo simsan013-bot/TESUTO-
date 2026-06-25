@@ -38,7 +38,12 @@ function callCompressionTool_(payload) {
   return httpPostJson_(
     getRequiredProp_(CONFIG_KEYS.COMPRESSION_APP_URL),
     getOptionalProp_(CONFIG_KEYS.COMPRESSION_APP_KEY),
-    payload
+    {
+      mode: 'run',
+      script: payload.script,
+      chars: payload.chars,
+      design: payload.design
+    }
   );
 }
 
