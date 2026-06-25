@@ -51,7 +51,10 @@ function callCharacterScriptApp_(payload) {
   return httpPostJson_(
     getRequiredProp_(CONFIG_KEYS.CHARACTER_SCRIPT_APP_URL),
     getOptionalProp_(CONFIG_KEYS.CHARACTER_SCRIPT_APP_KEY),
-    payload
+    {
+      mode: payload.mode || 'run',
+      spreadsheetId: payload.spreadsheetId
+    }
   );
 }
 
