@@ -62,7 +62,15 @@ function callFishAudioTts_(payload) {
   return httpPostJson_(
     getRequiredProp_(CONFIG_KEYS.FISH_AUDIO_URL),
     getOptionalProp_(CONFIG_KEYS.FISH_AUDIO_KEY),
-    payload
+    {
+      mode: 'run',
+      sheetId: payload.sheetId,
+      sheetName: payload.sheetName,
+      docIds: payload.docIds,
+      outputFolder: payload.outputFolder,
+      generateSrt: payload.generateSrt,
+      currentIdx: payload.currentIdx || 0
+    }
   );
 }
 

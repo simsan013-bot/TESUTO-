@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>音声生成App</title>
+  <style>
+    :root {
+      --bg      : #0d1117;
+      --surface : #161b22;
+      --surface2: #1c2333;
+      --border  : #30363d;
+      --accent  : #7c3aed;
+      --accent2 : #a855f7;
+      --success : #238636;
+      --srt     : #0d6efd;
+      --warn    : #f59e0b;
+      --text    : #e6edf3;
+      --muted   : #8b949e;
+      --radius  : 10px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+      min-height: 100vh;
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 40px 16px;
+    }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); width: 100%; max-width: 580px; overflow: hidden;
+    }
+    .card-header {
+      background: linear-gradient(135deg, #1e0a3c 0%, #2d1560 100%);
+      border-bottom: 1px solid var(--border); padding: 24px 28px;
+    }
+    .card-header h1 { font-size: 18px; font-weight: 700; color: #fff; }
+    .card-header p  { font-size: 12px; color: #b39ddb; margin-top: 4px; }
+    .card-body { padding: 28px; }
+    .section-label {
+      font-size: 10px; font-weight: 700; color: #484f58;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      margin: 22px 0 14px; padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block; font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 7px;
+    }
+    .field label span {
+      color: var(--accent2); font-size: 10px; text-transform: none;
+      letter-spacing: 0; margin-left: 6px;
+    }
+    input[type="text"] {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-size: 13px;
+      font-family: 'Courier New', monospace; padding: 10px 14px;
+      outline: none; transition: border-color 0.2s;
+    }
+    input[type="text"]:focus {
+      border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+    }
+    input[type="text"]::placeholder { color: #484f58; }
+    .hint { font-size: 11px; color: var(--muted); margin-top: 5px; line-height: 1.6; }
+    .hint code {
+      background: var(--surface2); padding: 1px 5px; border-radius: 3px;
+      font-size: 11px; color: #a5d6ff;
+    }
+    .row2 { display: flex; gap: 12px; }
+    .row2 .field { flex: 1; }
+
+    /* Doc入力欄 */
+    .doc-inputs {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 16px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .doc-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 6px 8px; border-radius: 6px;
+      border: 1px solid transparent; transition: all 0.3s;
+    }
+    .doc-row.current { border-color: var(--warn);   background: rgba(245,158,11,0.08); }
+    .doc-row.done    { border-color: var(--success); background: rgba(35,134,54,0.08); }
+    .doc-row.skipped { border-color: #ef4444;        background: rgba(239,68,68,0.08); }
+
+    .doc-num {
+      flex-shrink: 0; width: 24px; height: 24px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      transition: all 0.3s;
+    }
+    .doc-row.current .doc-num { background: var(--warn);   color: #000; border-color: var(--warn); }
+    .doc-row.done    .doc-num { background: var(--success); color: #fff; border-color: var(--success); }
+    .doc-row.skipped .doc-num { background: #ef4444;        color: #fff; border-color: #ef4444; }
+
+    .doc-row input[type="text"] {
+      flex: 1; font-size: 12px; padding: 7px 10px; background: var(--bg);
+    }
+    .doc-row.done input, .doc-row.skipped input { opacity: 0.6; }
+    .doc-status { flex-shrink: 0; font-size: 15px; width: 20px; text-align: center; }
+
+    /* SRTトグル */
+    .toggle-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 16px; margin-bottom: 18px;
+      cursor: pointer; user-select: none;
+    }
+    .toggle-row:hover { border-color: var(--accent); }
+    .toggle-switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+    .toggle-switch input { display: none; }
+    .toggle-track {
+      position: absolute; inset: 0; background: #30363d;
+      border-radius: 11px; transition: background 0.2s; cursor: pointer;
+    }
+    .toggle-track::after {
+      content: ''; position: absolute; left: 3px; top: 3px;
+      width: 16px; height: 16px; background: #fff;
+      border-radius: 50%; transition: transform 0.2s;
+    }
+    .toggle-switch input:checked + .toggle-track { background: var(--srt); }
+    .toggle-switch input:checked + .toggle-track::after { transform: translateX(18px); }
+    .toggle-info { flex: 1; }
+    .toggle-info .toggle-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .toggle-info .toggle-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .toggle-badge {
+      font-size: 10px; background: rgba(13,110,253,0.2); color: #6ea8fe;
+      border: 1px solid rgba(13,110,253,0.3); border-radius: 4px;
+      padding: 2px 7px; white-space: nowrap;
+    }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 6px 0 22px; }
+
+    /* 進捗バー */
+    .progress-wrap {
+      display: none; margin-bottom: 16px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 16px;
+    }
+    .progress-label {
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: var(--muted); margin-bottom: 8px;
+    }
+    .progress-track { height: 6px; background: var(--surface); border-radius: 100%; overflow: hidden; }
+    .progress-fill {
+      height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+      border-radius: 100%; transition: width 0.4s ease; width: 0%;
+    }
+
+    /* ボタン群 */
+    .btn-group { display: flex; gap: 10px; }
+    .btn-run {
+      flex: 1; padding: 14px; background: var(--accent); color: #fff;
+      border: none; border-radius: var(--radius); font-size: 15px; font-weight: 700;
+      letter-spacing: 0.05em; cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .btn-run:hover   { background: var(--accent2); }
+    .btn-run:active  { transform: scale(0.98); }
+    .btn-run:disabled { background: #30363d; cursor: not-allowed; transform: none; }
+    .btn-reset {
+      padding: 14px 18px; background: none;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      color: var(--muted); font-size: 12px; cursor: pointer;
+      transition: border-color 0.2s, color 0.2s; white-space: nowrap;
+    }
+    .btn-reset:hover { border-color: var(--warn); color: var(--warn); }
+
+    .spinner {
+      display: none; width: 18px; height: 18px;
+      border: 3px solid rgba(255,255,255,0.3); border-top-color: #fff;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ログ */
+    .log-area {
+      display: none; margin-top: 16px; background: var(--bg);
+      border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+    }
+    .log-header {
+      padding: 9px 16px; font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      background: var(--surface2); border-bottom: 1px solid var(--border);
+    }
+    .log-body {
+      padding: 14px 16px; font-size: 12px; font-family: 'Courier New', monospace;
+      line-height: 1.9; white-space: pre-wrap; word-break: break-all;
+      max-height: 280px; overflow-y: auto; color: #c9d1d9;
+    }
+
+    /* ファイルリスト */
+    .file-list { display: none; margin-top: 14px; }
+    .file-list-header {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+    }
+    .file-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 6px; padding: 8px 12px; margin-bottom: 5px;
+    }
+    .file-item .file-name {
+      font-size: 11px; font-family: 'Courier New', monospace;
+      color: var(--text); flex: 1; margin-right: 10px; word-break: break-all;
+    }
+    .file-item a {
+      flex-shrink: 0; padding: 4px 10px; color: #fff;
+      text-decoration: none; border-radius: 4px;
+      font-size: 11px; font-weight: 600; transition: opacity 0.2s;
+    }
+    .file-item a:hover { opacity: 0.85; }
+    .btn-wav { background: var(--success); }
+    .btn-srt { background: var(--srt); }
+
+    .error-card {
+      display: none; margin-top: 14px;
+      background: rgba(218,54,51,0.1); border: 1px solid rgba(218,54,51,0.4);
+      border-radius: var(--radius); padding: 12px 16px;
+      font-size: 12px; color: #f85149; white-space: pre-wrap; line-height: 1.7;
+    }
+    .done-banner {
+      display: none; margin-top: 16px;
+      background: rgba(35,134,54,0.15); border: 1px solid rgba(35,134,54,0.4);
+      border-radius: var(--radius); padding: 16px 20px; text-align: center;
+      font-size: 15px; font-weight: 700; color: #3fb950;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="card-header">
+    <h1>🎙️ 音声生成App</h1>
+    <p>ボタンを1回押すだけで①→⑤を自動処理します</p>
+  </div>
+
+  <div class="card-body">
+
+    <div class="section-label">音声モデル設定シート</div>
+    <div class="row2">
+      <div class="field">
+        <label>スプレッドシート ID <span>URLの /d/【ここ】/edit</span></label>
+        <input type="text" id="sheetId" placeholder="1BxiMVs0XRA5n...">
+      </div>
+      <div class="field">
+        <label>シート名（タブ名）</label>
+        <input type="text" id="sheetName" placeholder="キャスト設定">
+      </div>
+    </div>
+
+    <div class="section-label">対象Doc（上から順番に自動処理）</div>
+    <div class="field">
+      <div class="doc-inputs">
+        <div class="doc-row" id="row-0">
+          <div class="doc-num">1</div>
+          <input type="text" id="docId_0" placeholder="Doc ID（例：橋本鉄也_01 のID）">
+          <div class="doc-status" id="status-0"></div>
+        </div>
+        <div class="doc-row" id="row-1">
+          <div class="doc-num">2</div>
+          <input type="text" id="docId_1" placeholder="Doc ID">
+          <div class="doc-status" id="status-1"></div>
+        </div>
+        <div class="doc-row" id="row-2">
+          <div class="doc-num">3</div>
+          <input type="text" id="docId_2" placeholder="Doc ID">
+          <div class="doc-status" id="status-2"></div>
+        </div>
+        <div class="doc-row" id="row-3">
+          <div class="doc-num">4</div>
+          <input type="text" id="docId_3" placeholder="Doc ID">
+          <div class="doc-status" id="status-3"></div>
+        </div>
+        <div class="doc-row" id="row-4">
+          <div class="doc-num">5</div>
+          <input type="text" id="docId_4" placeholder="Doc ID">
+          <div class="doc-status" id="status-4"></div>
+        </div>
+        <div class="doc-row" id="row-5">
+          <div class="doc-num">6</div>
+          <input type="text" id="docId_5" placeholder="Doc ID">
+          <div class="doc-status" id="status-5"></div>
+        </div>
+        <div class="doc-row" id="row-6">
+          <div class="doc-num">7</div>
+          <input type="text" id="docId_6" placeholder="Doc ID">
+          <div class="doc-status" id="status-6"></div>
+        </div>
+        <div class="doc-row" id="row-7">
+          <div class="doc-num">8</div>
+          <input type="text" id="docId_7" placeholder="Doc ID">
+          <div class="doc-status" id="status-7"></div>
+        </div>
+        <div class="doc-row" id="row-8">
+          <div class="doc-num">9</div>
+          <input type="text" id="docId_8" placeholder="Doc ID">
+          <div class="doc-status" id="status-8"></div>
+        </div>
+        <div class="doc-row" id="row-9">
+          <div class="doc-num">10</div>
+          <input type="text" id="docId_9" placeholder="Doc ID">
+          <div class="doc-status" id="status-9"></div>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:8px;">
+        空欄・エラーの行は自動スキップして次へ進みます。
+      </div>
+    </div>
+
+    <div class="section-label">出力先</div>
+    <div class="field">
+      <label>作品フォルダ名 <span>省略=マイドライブ直下</span></label>
+      <input type="text" id="outputFolder" placeholder="例：作品01">
+      <div class="hint">保存先：<code>作品フォルダ / 音声データ / モデル名 / ファイル名.wav</code></div>
+    </div>
+
+    <div class="section-label">オプション</div>
+    <label class="toggle-row">
+      <div class="toggle-switch">
+        <input type="checkbox" id="generateSrt" checked>
+        <div class="toggle-track"></div>
+      </div>
+      <div class="toggle-info">
+        <div class="toggle-title">字幕ファイル（SRT）も生成する</div>
+        <div class="toggle-sub">SPLITグループ単位で .srt ファイルを保存します（ASR使用）</div>
+      </div>
+      <div class="toggle-badge">+$0.36/時間</div>
+    </label>
+
+    <hr class="divider">
+
+    <!-- 進捗バー -->
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-label">
+        <span id="progressLabel">準備中...</span>
+        <span id="progressCount"></span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <div class="btn-group">
+      <button class="btn-run" id="btnRun" onclick="startAll()">
+        <div class="spinner" id="spinner"></div>
+        <span id="btnLabel">▶ 全Doc自動生成を開始</span>
+      </button>
+      <button class="btn-reset" onclick="resetProgress()">↺ リセット</button>
+    </div>
+
+    <div class="log-area" id="logArea">
+      <div class="log-header">処理ログ</div>
+      <div class="log-body" id="logBody"></div>
+    </div>
+
+    <div class="file-list" id="fileList">
+      <div class="file-list-header">🎵 生成されたファイル（累計）</div>
+      <div id="fileItems"></div>
+    </div>
+
+    <div class="error-card" id="errorCard"></div>
+    <div class="done-banner" id="doneBanner">🎉 全Docの処理が完了しました！</div>
+
+  </div>
+</div>
+
+<script>
+  var currentIdx   = 0;
+  var totalValid   = 0;
+  var allDocIds    = [];
+  var allSavedFiles = [];
+  var isRunning    = false;
+
+  // ── 設定値キャッシュ（ループ中に参照）──
+  var _sheetId      = '';
+  var _sheetName    = '';
+  var _outputFolder = '';
+  var _generateSrt  = true;
+
+  // 画面ロード時：前回値と進捗を復元
+  window.addEventListener('load', function() {
+    google.script.run
+      .withSuccessHandler(function(s) {
+        if (s.sheetId)      document.getElementById('sheetId').value      = s.sheetId;
+        if (s.sheetName)    document.getElementById('sheetName').value    = s.sheetName;
+        if (s.outputFolder) document.getElementById('outputFolder').value = s.outputFolder;
+        currentIdx = s.currentIdx || 0;
+        refreshProgress();
+      })
+      .getSavedSettings();
+  });
+
+  // ── 全自動処理開始 ────────────────────────────────
+  function startAll() {
+    _sheetId      = document.getElementById('sheetId').value.trim();
+    _sheetName    = document.getElementById('sheetName').value.trim();
+    _outputFolder = document.getElementById('outputFolder').value.trim();
+    _generateSrt  = document.getElementById('generateSrt').checked;
+
+    allDocIds = [];
+    for (var i = 0; i < 10; i++) {
+      allDocIds.push(document.getElementById('docId_' + i).value.trim());
+    }
+
+    if (!_sheetId || !_sheetName) {
+      showError('スプレッドシートIDとシート名を入力してください。');
+      return;
+    }
+
+    totalValid = allDocIds.filter(function(id) { return id !== ''; }).length;
+    if (totalValid === 0) {
+      showError('DocIDを少なくとも1件入力してください。');
+      return;
+    }
+
+    allSavedFiles = [];
+    isRunning     = true;
+    setLoading(true);
+    document.getElementById('logArea').style.display = 'block';
+    document.getElementById('doneBanner').style.display = 'none';
+
+    processNext();
+  }
+
+  // ── 1Docずつ再帰的に処理 ─────────────────────────
+  function processNext() {
+    // 全件完了チェック
+    var validList = allDocIds.filter(function(id) { return id !== ''; });
+    if (currentIdx >= validList.length) {
+      finishAll();
+      return;
+    }
+
+    // 現在のDoc行をハイライト
+    markRowCurrent(currentIdx);
+    updateProgressBar(currentIdx, validList.length, '処理中...');
+
+    google.script.run
+      .withSuccessHandler(function(result) {
+
+        // ログ追記
+        if (result.logs && result.logs.length > 0) {
+          var logBody = document.getElementById('logBody');
+          logBody.textContent += result.logs.join('\n') + '\n\n';
+          logBody.scrollTop = logBody.scrollHeight;
+        }
+
+        // 行ステータス更新
+        if (result.originalIdx !== undefined) {
+          if (result.success) {
+            markRowDone(result.originalIdx);
+          } else {
+            markRowSkipped(result.originalIdx);
+          }
+        }
+
+        // ファイルを累積
+        if (result.savedFiles && result.savedFiles.length > 0) {
+          allSavedFiles = allSavedFiles.concat(result.savedFiles);
+          showFileList(allSavedFiles);
+        }
+
+        currentIdx = result.nextIdx || (currentIdx + 1);
+        var validList2 = allDocIds.filter(function(id) { return id !== ''; });
+        updateProgressBar(currentIdx, validList2.length, '処理中...');
+
+        if (result.allDone || currentIdx >= validList2.length) {
+          finishAll();
+        } else {
+          // 次のDocを自動処理
+          processNext();
+        }
+      })
+      .withFailureHandler(function(err) {
+        var logBody = document.getElementById('logBody');
+        logBody.textContent += '❌ 予期しないエラー: ' + err.message + '\n\n';
+        logBody.scrollTop = logBody.scrollHeight;
+        // エラーでもスキップして次へ
+        currentIdx++;
+        var validList3 = allDocIds.filter(function(id) { return id !== ''; });
+        if (currentIdx < validList3.length) {
+          processNext();
+        } else {
+          finishAll();
+        }
+      })
+      .generateAudio(_sheetId, _sheetName, allDocIds, _outputFolder, _generateSrt, currentIdx);
+  }
+
+  // ── 全完了処理 ────────────────────────────────────
+  function finishAll() {
+    isRunning = false;
+    setLoading(false);
+    var validList = allDocIds.filter(function(id) { return id !== ''; });
+    updateProgressBar(validList.length, validList.length, '完了');
+    document.getElementById('btnRun').disabled         = true;
+    document.getElementById('btnLabel').textContent    = '✅ 全Doc完了';
+    document.getElementById('doneBanner').style.display = 'block';
+  }
+
+  // ── リセット ──────────────────────────────────────
+  function resetProgress() {
+    if (isRunning) return; // 処理中はリセット不可
+    google.script.run
+      .withSuccessHandler(function() {
+        currentIdx     = 0;
+        allSavedFiles  = [];
+        isRunning      = false;
+        for (var i = 0; i < 10; i++) {
+          document.getElementById('row-' + i).className      = 'doc-row';
+          document.getElementById('status-' + i).textContent = '';
+        }
+        document.getElementById('btnRun').disabled          = false;
+        document.getElementById('btnLabel').textContent     = '▶ 全Doc自動生成を開始';
+        document.getElementById('progressWrap').style.display = 'none';
+        document.getElementById('logBody').textContent      = '';
+        document.getElementById('fileList').style.display   = 'none';
+        document.getElementById('fileItems').innerHTML      = '';
+        document.getElementById('errorCard').style.display  = 'none';
+        document.getElementById('doneBanner').style.display = 'none';
+      })
+      .resetIndex();
+  }
+
+  // ── 進捗バー ──────────────────────────────────────
+  function refreshProgress() {
+    totalValid = 0;
+    for (var i = 0; i < 10; i++) {
+      if (document.getElementById('docId_' + i).value.trim()) totalValid++;
+    }
+    if (totalValid > 0 && currentIdx > 0) {
+      document.getElementById('progressWrap').style.display = 'block';
+      updateProgressBar(currentIdx, totalValid, currentIdx >= totalValid ? '完了' : '再開可能');
+    }
+  }
+
+  function updateProgressBar(done, total, label) {
+    if (total === 0) return;
+    var pct = Math.min(Math.round((done / total) * 100), 100);
+    document.getElementById('progressWrap').style.display  = 'block';
+    document.getElementById('progressFill').style.width    = pct + '%';
+    document.getElementById('progressLabel').textContent   = label + '（' + done + ' / ' + total + ' Doc）';
+    document.getElementById('progressCount').textContent   = pct + '%';
+  }
+
+  // ── 行ステータス ──────────────────────────────────
+  function markRowCurrent(validIdx) {
+    var count = 0;
+    for (var i = 0; i < 10; i++) {
+      if (allDocIds[i] && allDocIds[i].trim() !== '') {
+        if (count === validIdx) {
+          var row = document.getElementById('row-' + i);
+          if (row.className === 'doc-row') {
+            row.className = 'doc-row current';
+            document.getElementById('status-' + i).textContent = '⏳';
+          }
+          break;
+        }
+        count++;
+      }
+    }
+  }
+
+  function markRowDone(origIdx) {
+    document.getElementById('row-' + origIdx).className      = 'doc-row done';
+    document.getElementById('status-' + origIdx).textContent = '✅';
+  }
+
+  function markRowSkipped(origIdx) {
+    document.getElementById('row-' + origIdx).className      = 'doc-row skipped';
+    document.getElementById('status-' + origIdx).textContent = '⚠️';
+  }
+
+  // ── UI ────────────────────────────────────────────
+  function setLoading(flag) {
+    document.getElementById('btnRun').disabled           = flag;
+    document.getElementById('spinner').style.display     = flag ? 'block' : 'none';
+    if (flag) document.getElementById('btnLabel').textContent = '自動処理中...';
+  }
+
+  function showFileList(files) {
+    var list  = document.getElementById('fileList');
+    var items = document.getElementById('fileItems');
+    items.innerHTML = '';
+
+    var sorted = files.slice().sort(function(a, b) {
+      if (a.isSrt && !b.isSrt) return -1;
+      if (!a.isSrt && b.isSrt) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    for (var i = 0; i < sorted.length; i++) {
+      var f   = sorted[i];
+      var div = document.createElement('div');
+      div.className = 'file-item';
+      div.innerHTML =
+        '<div class="file-name">' + f.name + '</div>' +
+        '<a href="' + f.url + '" target="_blank" class="' + (f.isSrt ? 'btn-srt' : 'btn-wav') + '">' +
+        (f.isSrt ? '📄 SRT' : '🎵 WAV') + '</a>';
+      items.appendChild(div);
+    }
+    list.style.display = 'block';
+  }
+
+  function showError(msg) {
+    var card = document.getElementById('errorCard');
+    card.textContent   = '❌ ' + msg;
+    card.style.display = 'block';
+  }
+</script>
+</body>
+</html>
