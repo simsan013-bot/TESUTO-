@@ -51,12 +51,15 @@ index.html     対話型UI（無改修。doGetが小文字'index'を参照する
    書き換えて一度実行する（`FISH_API_KEY`としてScript Propertiesに保存される）。
    `checkApiKey()`で設定済みか確認できる。
 3. 同じくエディタから`authDrive()`を一度実行してDriveのスコープを認証する。
-4. Webアプリとしてデプロイ（`executeAs: USER_DEPLOYING` / `access: ANYONE`）。
-5. デプロイURLを producer 側の Script Properties に設定する。
+4. Script Propertiesに`PRODUCER_SHARED_KEY`（producer専用の合言葉）を設定する。
+   producer側の`FISH_AUDIO_KEY`と**同じ値**にすること。未設定の場合、
+   producerからの呼び出しはすべて拒否される。
+5. Webアプリとしてデプロイ（`executeAs: USER_DEPLOYING` / `access: ANYONE`）。
+6. デプロイURLを producer 側の Script Properties に設定する。
    ```js
    setScriptProperties({
      FISH_AUDIO_URL: '...',
-     FISH_AUDIO_KEY: '...'   // 未使用のため省略可
+     FISH_AUDIO_KEY: '...'   // 上記PRODUCER_SHARED_KEYと同じ値
    });
    ```
 

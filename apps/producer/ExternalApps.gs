@@ -1,17 +1,20 @@
 // 既存App群（シナリオApp / 圧縮ツール / キャラ別台本 / Fish Audio / PRP生成 / 画像生成App）を
 // HTTP POSTで呼び出すラッパー。プロンプト・ロジックは各App側のまま変更しない。
 // URL・APIキーはハードコードせず Script Properties から取得する（setScriptProperties()で設定）。
+//
+// 合言葉（APIキー）はリクエストヘッダーではなくJSONボディに埋め込んで送る。
+// GASのdoPost(e)はWebアプリ宛リクエストの独自ヘッダー（Authorization等）を
+// 読み取れないため、各AppのdoPost側でbody.secretとして確認する設計にしている。
 
 function httpPostJson_(url, apiKey, payload) {
-  var headers = {};
+  var body = payload || {};
   if (apiKey) {
-    headers['Authorization'] = 'Bearer ' + apiKey;
+    body.secret = apiKey;
   }
   var options = {
     method: 'post',
     contentType: 'application/json',
-    headers: headers,
-    payload: JSON.stringify(payload),
+    payload: JSON.stringify(body),
     muteHttpExceptions: true
   };
   var response = UrlFetchApp.fetch(url, options);

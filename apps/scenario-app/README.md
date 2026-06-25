@@ -46,12 +46,17 @@ WebApi.gs      doPost（producerからのHTTP呼び出し用、新規追加）
 index.html     対話型UI（無改修）
 ```
 
-## 重要：デプロイ設定（executeAs）
+## デプロイ設定（executeAs）
 
-`appsscript.json` の `webapp.executeAs` は **`USER_ACCESSING`** のままにする
-こと。`checkAuth()` はアクセスしているユーザー本人のメールアドレスを
-`ALLOWED_EMAILS` と照合する設計のため、`USER_DEPLOYING`（他の移植済みApp
-で使っている設定）に変更すると認証ロジックが意味を持たなくなる。
+`appsscript.json` の `webapp.executeAs` は他の移植済みApp群と統一して
+**`USER_DEPLOYING`** にしている。producerからの`doPost`呼び出しは
+ブラウザでログインしたGoogleユーザーではないサーバー間通信（匿名アクセス）
+のため、`USER_ACCESSING`だと`Session.getActiveUser()`が空になり実行権限が
+不安定になる（producerが使う他の5Appも同じ理由で`USER_DEPLOYING`）。
+ブラウザから人間がアクセスする`checkAuth()`（`ALLOWED_EMAILS`照合）は
+`Session.getActiveUser()`が同一Google Workspaceドメイン内のログイン
+ユーザーの実際のメールアドレスを返す挙動自体には影響しないため、
+`USER_DEPLOYING`でも従来どおり機能する。
 
 ## セットアップ
 
@@ -61,12 +66,14 @@ index.html     対話型UI（無改修）
    - `AI_PROVIDER`: `claude` または `openai`
    - `CLAUDE_KEY`（`AI_PROVIDER=claude`の場合）
    - `OPENAI_KEY`（`AI_PROVIDER=openai`の場合）
-4. Webアプリとしてデプロイ（`executeAs: USER_ACCESSING` / `access: ANYONE`）
+   - `PRODUCER_SHARED_KEY`: producer専用の合言葉。producer側の `SCENARIO_APP_KEY` と
+     **同じ値**にすること。未設定の場合、producerからの呼び出しはすべて拒否される。
+4. Webアプリとしてデプロイ（`executeAs: USER_DEPLOYING` / `access: ANYONE`）
 5. デプロイURLを producer 側の Script Properties に設定する。
    ```js
    setScriptProperties({
      SCENARIO_APP_URL: '...',
-     SCENARIO_APP_KEY: '...'   // 未使用のため省略可
+     SCENARIO_APP_KEY: '...'   // 上記PRODUCER_SHARED_KEYと同じ値
    });
    ```
 

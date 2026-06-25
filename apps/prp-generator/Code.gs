@@ -3,6 +3,11 @@
 
 function doPost(e) {
   var body = JSON.parse(e.postData.contents);
+
+  if (!verifyProducerSecret_(body)) {
+    return jsonResponse_({ ok: false, error: '認証エラー: secret が一致しません。' });
+  }
+
   var mode = body.mode;
 
   if (mode === 'character') {
@@ -36,6 +41,14 @@ function doPost(e) {
 
 function doGet(e) {
   return ContentService.createTextOutput('OK').setMimeType(ContentService.MimeType.TEXT);
+}
+
+// producerからの呼び出しを確認するための合言葉チェック。
+// 未設定の場合は常に拒否する（安全側のデフォルト）。
+function verifyProducerSecret_(body) {
+  var expected = PropertiesService.getScriptProperties().getProperty('PRODUCER_SHARED_KEY');
+  if (!expected) return false;
+  return !!body && body.secret === expected;
 }
 
 function jsonResponse_(obj) {

@@ -30,6 +30,11 @@ var MAX_REGEN_ATTEMPTS = 2;
 
 function doPost(e) {
   var body = JSON.parse(e.postData.contents);
+
+  if (!verifyProducerSecret_(body)) {
+    return jsonResponse_({ ok: false, error: '認証エラー: secret が一致しません。' });
+  }
+
   var mode = body.mode;
 
   if (mode === 'run') {
@@ -37,6 +42,16 @@ function doPost(e) {
   }
 
   return jsonResponse_({ ok: false, error: 'mode は "run" を指定してください。' });
+}
+
+// producerからの呼び出しを確認するための合言葉チェック。
+// UIのcheckAuth()（メールアドレス許可リスト）とは別の仕組み。doPostは
+// checkAuth()を経由せず直接コア関数を呼ぶため、この合言葉が唯一の認証になる。
+// 未設定の場合は常に拒否する（安全側のデフォルト）。
+function verifyProducerSecret_(body) {
+  var expected = PropertiesService.getScriptProperties().getProperty('PRODUCER_SHARED_KEY');
+  if (!expected) return false;
+  return !!body && body.secret === expected;
 }
 
 function runScenarioPipeline_(body) {

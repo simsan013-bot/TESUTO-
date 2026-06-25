@@ -75,12 +75,15 @@ index.html     対話型UI（無改修）
 1. `clasp create --type webapp --title "compression-tool" --rootDir .`
 2. `Config.gs` の `ALLOWED_EMAILS` にブラウザでアクセスする人のメールアドレスを設定
 3. Script Properties に `CLAUDE_KEY` を設定する。
-4. Webアプリとしてデプロイ（`executeAs: USER_DEPLOYING` / `access: ANYONE`）
-5. デプロイURLを producer 側の Script Properties に設定する。
+4. Script Properties に `PRODUCER_SHARED_KEY`（producer専用の合言葉）を設定する。
+   producer側の `COMPRESSION_APP_KEY` と**同じ値**にすること。未設定の場合、
+   producerからの呼び出しはすべて拒否される。
+5. Webアプリとしてデプロイ（`executeAs: USER_DEPLOYING` / `access: ANYONE`）
+6. デプロイURLを producer 側の Script Properties に設定する。
    ```js
    setScriptProperties({
      COMPRESSION_APP_URL: '...',
-     COMPRESSION_APP_KEY: '...'   // 未使用のため省略可
+     COMPRESSION_APP_KEY: '...'   // 上記PRODUCER_SHARED_KEYと同じ値
    });
    ```
 

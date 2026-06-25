@@ -26,6 +26,7 @@ GASエディタの「プロジェクトの設定」→「スクリプト プロ�
 ```js
 setScriptProperties({
   SPREADSHEET_ID: '...',           // 自動化キューシート/NGログを置くスプレッドシートのID
+  PRODUCER_SELF_KEY: '...',        // producer自身のdoPost（緊急時の手動実行用入口）を守る合言葉
   SCENARIO_APP_URL: '...',
   SCENARIO_APP_KEY: '...',         // 不要な場合は省略可
   COMPRESSION_APP_URL: '...',
@@ -40,6 +41,9 @@ setScriptProperties({
   IMAGE_APP_KEY: '...'
 });
 ```
+
+各App用の `..._APP_KEY` は、呼び出し先App側のスクリプトプロパティ `PRODUCER_SHARED_KEY` と
+**同じ値**を設定すること（合言葉が一致しない呼び出しはApp側で拒否される）。
 
 ## 初期化
 
@@ -58,7 +62,20 @@ setupNgLogSheet();   // NGログシートのヘッダーを作成
 | `runProducerTick()` | キューを巡回し、各作品を1ステップ進める（時間主導トリガー用） |
 | `recordCheckResult(workId, processName, checkerName, isOk, reason, fixInstruction)` | チェッカー（STEP4で実装予定）からの判定結果を受けてリトライ/エスカレーションを処理 |
 | `clearGate(workId)` | Sim確認ゲートをクリアして次工程へ進める |
+| `installProducerTrigger(intervalMinutes)` | `runProducerTick` を時間主導トリガーで自動実行するよう設定する（省略時は30分おき） |
+| `uninstallProducerTrigger()` | 自動実行トリガーを解除する |
 
-## トリガー設定
+## トリガー設定（自動実行）
 
-GASエディタの「トリガー」から `runProducerTick` を時間主導（例: 5分おき）で実行するよう設定する。
+GASエディタで `installProducerTrigger()` を一度だけ実行する（引数なしなら30分おき）。
+以後はGASが自動でその間隔ごとに `runProducerTick()` を呼び続ける。
+
+間隔を変更したい場合は、`installProducerTrigger(10)`（10分おきの例）のように
+別の分数を指定して再実行すればよい。内部で古いトリガーを削除してから新しいトリガーを
+作成するため、二重登録にはならない。指定できる分数はGASの仕様上 1 / 5 / 10 / 15 / 30 のいずれか。
+
+トリガーを止めたい場合は `uninstallProducerTrigger()` を実行する。
+
+なお、producer自身の `doPost` も外部から「今すぐ1回実行して」と呼べる入口として残してあるが、
+緊急時の手動実行用であり、リクエストボディに `PRODUCER_SELF_KEY` と一致する `secret` がない場合は
+`{ ok: false, error: '認証エラー: secret が一致しません。' }` を返して拒否する。

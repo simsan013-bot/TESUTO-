@@ -30,6 +30,13 @@
      `SECRET_KEY`を読み取る（`getSecretKey_()`）。producer側に同じ値を
      複製・共有する必要はない。
 
+   - これとは別に、producerからの呼び出し自体を認証するための
+     `PRODUCER_SHARED_KEY`（`verifyProducerSecret_()`）も追加した。
+     `SECRET_KEY`（このAppの台本生成ロジック自体のパスワード）とは
+     完全に別の値で、producer側の`CHARACTER_SCRIPT_APP_KEY`と
+     **同じ値**にする必要がある。未設定の場合、producerからの呼び出しは
+     すべて拒否される。
+
 ## 保持したもの（無改修）
 
 - `authDrive()`（コピー先スプレッドシートはOAuthトークンを引き継がないため、
@@ -98,16 +105,18 @@ Index.html     対話型UI（無改修）
 
 1. `clasp create --type webapp --title "character-script-app" --rootDir .`
 2. Script Propertiesに`SECRET_KEY`を設定する（UI・producer双方の認証に使う）。
-3. デプロイ後、エディタから`authDrive()`を一度実行してDrive/Docsのスコープを認証する。
-4. Webアプリとしてデプロイ（`executeAs: USER_DEPLOYING` / `access: ANYONE`）。
-5. デプロイURLを producer 側の Script Properties に設定する。
+3. Script Propertiesに`PRODUCER_SHARED_KEY`（producer専用の合言葉。`SECRET_KEY`とは別物）を
+   設定する。producer側の`CHARACTER_SCRIPT_APP_KEY`と**同じ値**にすること。
+4. デプロイ後、エディタから`authDrive()`を一度実行してDrive/Docsのスコープを認証する。
+5. Webアプリとしてデプロイ（`executeAs: USER_DEPLOYING` / `access: ANYONE`）。
+6. デプロイURLを producer 側の Script Properties に設定する。
    ```js
    setScriptProperties({
      CHARACTER_SCRIPT_APP_URL: '...',
-     CHARACTER_SCRIPT_APP_KEY: '...'   // 未使用のため省略可
+     CHARACTER_SCRIPT_APP_KEY: '...'   // 上記PRODUCER_SHARED_KEYと同じ値
    });
    ```
-6. 台本を置く各スプレッドシートの拡張機能 → Apps Scriptに、上記`onEdit`を設置する。
+7. 台本を置く各スプレッドシートの拡張機能 → Apps Scriptに、上記`onEdit`を設置する。
 
 ## doPost の入出力契約
 

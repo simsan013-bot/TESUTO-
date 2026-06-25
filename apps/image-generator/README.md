@@ -57,9 +57,12 @@ WebApi.gs           doPost/doGet（producerからのHTTP呼び出し用、新規
    - `GEMINI_API_KEY` : Google AI Studio で取得したAPIキー
    - `DRIVE_FOLDER_ID` : 生成画像/動画の保存先Google DriveフォルダID
 3. メニュー「🔧 シート初期設定（ヘッダー再作成）」を一度実行してシート構成を整える。
-4. Web Appとしてデプロイし、デプロイURLを producer 側の
-   `IMAGE_APP_URL` スクリプトプロパティに設定する
-   （`setScriptProperties({IMAGE_APP_URL: '...'})`）。
+4. スクリプトプロパティに `PRODUCER_SHARED_KEY`（producer専用の合言葉）を設定する。
+   producer側の `IMAGE_APP_KEY` と**同じ値**にすること。未設定の場合、producerからの
+   呼び出しはすべて拒否される。
+5. Web Appとしてデプロイし、デプロイURLを producer 側の
+   `IMAGE_APP_URL`、上記合言葉を `IMAGE_APP_KEY` に設定する
+   （`setScriptProperties({IMAGE_APP_URL: '...', IMAGE_APP_KEY: '...'})`）。
 
 ## doPost の入出力契約
 

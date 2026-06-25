@@ -40,5 +40,8 @@ GASのWebApp実行は最大6分のため、`totalScenes` が大きい場合は�
 1. `clasp create --type webapp --title "prp-generator"`
 2. `clasp push`
 3. Script Properties に `ANTHROPIC_API_KEY` を設定
-4. Webアプリとしてデプロイし、そのURLを producer 側の Script Properties
-   `PRP_APP_URL` に設定する（`PRP_APP_KEY` は未使用のため空でよい）
+4. Script Properties に `PRODUCER_SHARED_KEY`（producer専用の合言葉）を設定する。
+   producer側の `PRP_APP_KEY` と**同じ値**にすること。未設定の場合、producerからの
+   呼び出しはすべて `{ ok: false, error: '認証エラー: secret が一致しません。' }` で拒否される。
+5. Webアプリとしてデプロイし、そのURLを producer 側の Script Properties
+   `PRP_APP_URL` に、上記合言葉を `PRP_APP_KEY` に設定する。
