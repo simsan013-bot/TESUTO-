@@ -2,7 +2,9 @@
 
 元は `index.html` 単体（ブラウザから Anthropic API を直接 `fetch()` する対話型ツール、
 `google.script.run` は使わない）と、管理表からのスプシ出力・音声モデル割り当てなどを
-担う `checkAuth()` ガード付きの `Code.gs`（HtmlServiceで配信）から成るツール。
+担う `Code.gs`（HtmlServiceで配信）から成るツール。運用者が一人のみの想定のため、
+人間用UIのメールアドレス許可リスト`checkAuth()`は撤去済み（デプロイURLを知っていれば
+誰でもブラウザから開ける状態になる）。
 元シナリオ（2〜3万字）を STORY_BIBLE 抽出 → ①ダイジェスト → ②起承 → ③葛藤〜どん底 →
 ④転 → ⑤結 の順に8フェーズ感情設計で圧縮・再編集する。
 
@@ -54,7 +56,7 @@
   GAS V8互換のためテンプレートリテラル（バッククォート）を `var`/`function` +
   文字列連結に変換したが、出力される文字列は一字一句同一。
 - `AI.gs` の `callClaude`（既存App群対話用、無改修）
-- `Code.gs` の `checkAuth`/`getWorkList`/`detectCharacterRoles`/
+- `Code.gs` の `getWorkList`/`detectCharacterRoles`/
   `formatForSheet`/`parseScriptToRows`/`VOICE_MODEL_LIST`/`selectVoiceModels`/
   `exportToSpreadsheet`（旧プロンプト群削除以外は無改修）
 - `index.html`（対話型UI、ブラウザから `doGet` 経由でアクセス。一字一句無改修）
@@ -62,7 +64,7 @@
 ## ファイル構成
 
 ```
-Config.gs      ALLOWED_EMAILS・MGMT_SHEET_ID/NAME・checkAuth()
+Config.gs      MGMT_SHEET_ID/NAME
 AI.gs          callClaude（既存）／callClaudeForPipeline_（新規・429リトライ付き）
 Prompts.gs     index.html由来の全プロンプト（現行仕様）
 Code.gs        doGet・getWorkList・detectCharacterRoles・スプシ出力関連
@@ -73,13 +75,12 @@ index.html     対話型UI（無改修）
 ## セットアップ
 
 1. `clasp create --type webapp --title "compression-tool" --rootDir .`
-2. `Config.gs` の `ALLOWED_EMAILS` にブラウザでアクセスする人のメールアドレスを設定
-3. Script Properties に `CLAUDE_KEY` を設定する。
-4. Script Properties に `PRODUCER_SHARED_KEY`（producer専用の合言葉）を設定する。
+2. Script Properties に `CLAUDE_KEY` を設定する。
+3. Script Properties に `PRODUCER_SHARED_KEY`（producer専用の合言葉）を設定する。
    producer側の `COMPRESSION_APP_KEY` と**同じ値**にすること。未設定の場合、
    producerからの呼び出しはすべて拒否される。
-5. Webアプリとしてデプロイ（`executeAs: USER_DEPLOYING` / `access: ANYONE`）
-6. デプロイURLを producer 側の Script Properties に設定する。
+4. Webアプリとしてデプロイ（`executeAs: USER_DEPLOYING` / `access: ANYONE`）
+5. デプロイURLを producer 側の Script Properties に設定する。
    ```js
    setScriptProperties({
      COMPRESSION_APP_URL: '...',

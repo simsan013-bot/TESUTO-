@@ -129,13 +129,7 @@ function detectColumns(modelValues) {
 // ================================================================
 // キャラクター一覧抽出 → スプシ「キャラ一覧」タブに書き出し
 // ================================================================
-function extractCharacterList(spreadsheetId, secretKey) {
-
-  var props = PropertiesService.getScriptProperties();
-  var storedKey = props.getProperty('SECRET_KEY');
-  if (!storedKey || String(secretKey) !== storedKey) {
-    return { success: false, logs: ['❌ 認証エラー：シークレットキーが正しくありません'] };
-  }
+function extractCharacterList(spreadsheetId) {
 
   var logs = [];
 
@@ -321,13 +315,7 @@ function writeDocListSheet(ss, docRecords) {
 // ================================================================
 // メイン処理：モデル別 Doc 生成
 // ================================================================
-function generateModelDocs(spreadsheetId, secretKey) {
-
-  var props = PropertiesService.getScriptProperties();
-  var storedKey = props.getProperty('SECRET_KEY');
-  if (!storedKey || String(secretKey) !== storedKey) {
-    return { success: false, logs: ['❌ 認証エラー：シークレットキーが正しくありません'] };
-  }
+function generateModelDocs(spreadsheetId) {
 
   var logs = [];
   var ssId = String(spreadsheetId).trim();

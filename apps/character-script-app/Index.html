@@ -235,9 +235,6 @@
       </div>
       <div class="card-body">
 
-        <label>シークレットキー</label>
-        <input type="password" id="secretKey" placeholder="スクリプトプロパティの SECRET_KEY を入力" />
-
         <label>台本スプレッドシートID</label>
         <input type="text" id="spreadsheetId" placeholder="スプレッドシートIDを貼り付け" />
         <div class="help-text">
@@ -320,7 +317,6 @@ A列：タグ　　B列：【キャラ名】　　C列：voice_id　　D列：sp
 
         <div class="note-box">
           ⚠ <strong>事前準備：</strong>
-          スクリプトプロパティに <code>SECRET_KEY</code> を設定してください。<br>
           初回デプロイ後は <code>authDrive()</code> を一度実行してスコープを認証してください。<br>
           生成された Doc はスプレッドシートと同じフォルダ内の「<strong>音声台本</strong>」フォルダに保存されます。
         </div>
@@ -378,14 +374,12 @@ A列：タグ　　B列：【キャラ名】　　C列：voice_id　　D列：sp
 
     function getInputs() {
       return {
-        secretKey:     document.getElementById('secretKey').value.trim(),
         spreadsheetId: document.getElementById('spreadsheetId').value.trim()
       };
     }
 
     function validate() {
       var v = getInputs();
-      if (!v.secretKey)     { alert('シークレットキーを入力してください'); return null; }
       if (!v.spreadsheetId) { alert('スプレッドシートIDを入力してください'); return null; }
       return v;
     }
@@ -420,7 +414,7 @@ A列：タグ　　B列：【キャラ名】　　C列：voice_id　　D列：sp
           extractBtn.disabled = false;
           runBtn.disabled = false;
         })
-        .extractCharacterList(v.spreadsheetId, v.secretKey);
+        .extractCharacterList(v.spreadsheetId);
     }
 
     // ── モデル別 Doc 生成 ──
@@ -454,7 +448,7 @@ A列：タグ　　B列：【キャラ名】　　C列：voice_id　　D列：sp
           runBtn.disabled = false;
           extractBtn.disabled = false;
         })
-        .generateModelDocs(v.spreadsheetId, v.secretKey);
+        .generateModelDocs(v.spreadsheetId);
     }
   </script>
 

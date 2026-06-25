@@ -46,8 +46,6 @@ function doPost(e) {
 }
 
 // producerからの呼び出しを確認するための合言葉チェック。
-// UIのcheckAuth()（メールアドレス許可リスト）とは別の仕組み。doPostは
-// checkAuth()を経由せず直接コア関数を呼ぶため、この合言葉が唯一の認証になる。
 // 未設定の場合は常に拒否する（安全側のデフォルト）。
 function verifyProducerSecret_(body) {
   var expected = PropertiesService.getScriptProperties().getProperty('PRODUCER_SHARED_KEY');

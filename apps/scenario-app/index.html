@@ -420,8 +420,6 @@ function updateMeter(textareaId, meterId, iconId, countId, barId, noteId, minCha
 // ---- エラー診断 ----
 function diagnoseError(msg) {
   msg = (msg || '').toLowerCase();
-  if (msg.indexOf('access denied') >= 0 || msg.indexOf('not allowed') >= 0)
-    return 'ALLOWED_EMAILS にあなたのGmailアドレスが登録されていません。コード.gs の ALLOWED_EMAILS を確認してください。';
   if (msg.indexOf('claude_key') >= 0 || msg.indexOf('openai_key') >= 0 || msg.indexOf('is not set') >= 0)
     return 'スクリプトプロパティにAPIキーが設定されていません。GAS の「プロジェクトの設定」→「スクリプトプロパティ」で CLAUDE_KEY または OPENAI_KEY を追加してください。';
   if (msg.indexOf('401') >= 0 || msg.indexOf('unauthorized') >= 0)

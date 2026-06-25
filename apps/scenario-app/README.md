@@ -1,20 +1,21 @@
 # scenario-app（シナリオ最適化AI）
 
-元は `checkAuth()`（`Session.getActiveUser()` によるメールアドレス許可リスト判定）
-でガードされた、HtmlServiceの対話型Webアプリ（参考シナリオ入力→設計→
+元はHtmlServiceの対話型Webアプリ（参考シナリオ入力→設計→
 類似性チェック→タイトル確認→STEP0〜7台本生成を1画面ずつ進める）。
 プロンプト文面（`SYS_ANALYZE`/`SYS_DESIGN`/`buildCheckSystem`/各STEPの
 生成ルール・文字数しきい値）・AIモデルID・名前データは一字一句変更していない。
 今回の移植で変更したのは下記2点のみ。
+（運用者が一人のみの想定のため、人間用UIのメールアドレス許可リスト
+`checkAuth()`は撤去済み。デプロイURLを知っていれば誰でもブラウザから
+開ける状態になる）
 
 ## 変更した点（呼び出し方のみ）
 
-1. **`designScenario`/`checkSimilarity`/`writeStep`/`regenerateStep` を
-   「認証チェック付きの薄いラッパー」と「`_`付きのコア関数」に分離**
-   （`Code.gs`）。ブラウザの `google.script.run` からはラッパー経由で
-   呼ばれ、挙動は元のまま完全に同一。producerからのHTTP POST（サーバー間
-   呼び出し）には `Session.getActiveUser()` が意味のある値を返さないため、
-   コア関数を直接呼ぶ新しい `doPost`（`WebApi.gs`）を追加した。
+1. **`designScenario`/`checkSimilarity`/`writeStep`/`regenerateStep` の
+   本体を「`_`付きのコア関数」に分離**（`Code.gs`）。ブラウザの
+   `google.script.run` からは薄いラッパー経由で呼ばれ、挙動は元のまま
+   完全に同一。producerからのHTTP POST（サーバー間呼び出し）も
+   コア関数を直接呼ぶ新しい `doPost`（`WebApi.gs`）から実行する。
 
 2. **`doPost` Web APIエントリーポイントを追加（`WebApi.gs`、新規ファイル）**
    `mode: 'run'` を受けて、設計→類似性チェック（参考情報、ブロックしない）
@@ -37,11 +38,11 @@
 ## ファイル構成
 
 ```
-Config.gs      ALLOWED_EMAILS・checkAuth()・getProperty()
+Config.gs      getProperty()
 AI.gs          callAI/callClaude/callOpenAI
 Prompts.gs     全システムプロンプト・STEP定義（無改修）
 NameTable.gs   登場人物の名前データ・ランダム抽出
-Code.gs        doGet・各公開関数（認証ラッパー）＋ `_`付きコア関数
+Code.gs        doGet・各公開関数（薄いラッパー）＋ `_`付きコア関数
 WebApi.gs      doPost（producerからのHTTP呼び出し用、新規追加）
 index.html     対話型UI（無改修）
 ```
@@ -53,23 +54,18 @@ index.html     対話型UI（無改修）
 ブラウザでログインしたGoogleユーザーではないサーバー間通信（匿名アクセス）
 のため、`USER_ACCESSING`だと`Session.getActiveUser()`が空になり実行権限が
 不安定になる（producerが使う他の5Appも同じ理由で`USER_DEPLOYING`）。
-ブラウザから人間がアクセスする`checkAuth()`（`ALLOWED_EMAILS`照合）は
-`Session.getActiveUser()`が同一Google Workspaceドメイン内のログイン
-ユーザーの実際のメールアドレスを返す挙動自体には影響しないため、
-`USER_DEPLOYING`でも従来どおり機能する。
 
 ## セットアップ
 
 1. `clasp create --type webapp --title "scenario-app" --rootDir .`
-2. `Config.gs` の `ALLOWED_EMAILS` にブラウザでアクセスする人のメールアドレスを設定
-3. Script Properties に以下を設定する。
+2. Script Properties に以下を設定する。
    - `AI_PROVIDER`: `claude` または `openai`
    - `CLAUDE_KEY`（`AI_PROVIDER=claude`の場合）
    - `OPENAI_KEY`（`AI_PROVIDER=openai`の場合）
    - `PRODUCER_SHARED_KEY`: producer専用の合言葉。producer側の `SCENARIO_APP_KEY` と
      **同じ値**にすること。未設定の場合、producerからの呼び出しはすべて拒否される。
-4. Webアプリとしてデプロイ（`executeAs: USER_DEPLOYING` / `access: ANYONE`）
-5. デプロイURLを producer 側の Script Properties に設定する。
+3. Webアプリとしてデプロイ（`executeAs: USER_DEPLOYING` / `access: ANYONE`）
+4. デプロイURLを producer 側の Script Properties に設定する。
    ```js
    setScriptProperties({
      SCENARIO_APP_URL: '...',

@@ -3,9 +3,6 @@
 
 var CONFIG_KEYS = {
   SPREADSHEET_ID: 'SPREADSHEET_ID',
-  // producer自身のdoPost（外部から「今すぐ1回実行して」と呼ぶ入口）を
-  // 守るための合言葉。この値を知らない相手からの呼び出しは拒否する。
-  PRODUCER_SELF_KEY: 'PRODUCER_SELF_KEY',
   SCENARIO_APP_URL: 'SCENARIO_APP_URL',
   SCENARIO_APP_KEY: 'SCENARIO_APP_KEY',
   COMPRESSION_APP_URL: 'COMPRESSION_APP_URL',

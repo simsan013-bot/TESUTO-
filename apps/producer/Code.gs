@@ -128,26 +128,8 @@ function doGet(e) {
 
 // 外部から「今すぐ1回 runProducerTick() を実行して」と呼べる入口。
 // 通常は installProducerTrigger() の時間主導トリガーが定期実行するため、
-// この入口は緊急時の手動実行用。合言葉（PRODUCER_SELF_KEY）が一致しない
-// 呼び出しは拒否する。
+// この入口は緊急時の手動実行用。
 function doPost(e) {
-  var body = {};
-  try {
-    body = JSON.parse(e.postData.contents);
-  } catch (err) {
-    body = {};
-  }
-
-  if (!verifyCallerSecret_(body)) {
-    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: '認証エラー: secret が一致しません。' })).setMimeType(ContentService.MimeType.JSON);
-  }
-
   runProducerTick();
   return ContentService.createTextOutput(JSON.stringify({ ok: true })).setMimeType(ContentService.MimeType.JSON);
-}
-
-function verifyCallerSecret_(body) {
-  var expected = PropertiesService.getScriptProperties().getProperty(CONFIG_KEYS.PRODUCER_SELF_KEY);
-  if (!expected) return false; // 未設定の場合は常に拒否（安全側）
-  return !!body && body.secret === expected;
 }

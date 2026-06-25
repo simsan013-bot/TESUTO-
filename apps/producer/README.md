@@ -26,7 +26,6 @@ GASエディタの「プロジェクトの設定」→「スクリプト プロ�
 ```js
 setScriptProperties({
   SPREADSHEET_ID: '...',           // 自動化キューシート/NGログを置くスプレッドシートのID
-  PRODUCER_SELF_KEY: '...',        // producer自身のdoPost（緊急時の手動実行用入口）を守る合言葉
   SCENARIO_APP_URL: '...',
   SCENARIO_APP_KEY: '...',         // 不要な場合は省略可
   COMPRESSION_APP_URL: '...',
@@ -77,5 +76,4 @@ GASエディタで `installProducerTrigger()` を一度だけ実行する（引�
 トリガーを止めたい場合は `uninstallProducerTrigger()` を実行する。
 
 なお、producer自身の `doPost` も外部から「今すぐ1回実行して」と呼べる入口として残してあるが、
-緊急時の手動実行用であり、リクエストボディに `PRODUCER_SELF_KEY` と一致する `secret` がない場合は
-`{ ok: false, error: '認証エラー: secret が一致しません。' }` を返して拒否する。
+緊急時の手動実行用。デプロイURLを知っていれば誰でも呼び出せる点に注意（合言葉チェックなし）。

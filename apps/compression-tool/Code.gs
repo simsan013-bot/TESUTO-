@@ -7,8 +7,6 @@ function doGet() {
 
 // ---- 管理表から話数リストを取得 ----
 function getWorkList() {
-  var auth = checkAuth();
-  if (!auth.allowed) return { success: false, error: 'Access denied: ' + auth.email };
   try {
     var ss    = SpreadsheetApp.openById(MGMT_SHEET_ID);
     var sheet = ss.getSheetByName(MGMT_SHEET_NAME);
@@ -32,9 +30,6 @@ function getWorkList() {
 //  キャラクターロール自動判定
 // ==================================================
 function detectCharacterRoles(params) {
-  var auth = checkAuth();
-  if (!auth.allowed) return { success: false, error: 'Access denied: ' + auth.email };
-
   var fullScript = params.fullScript || '';
 
   var sys = 'あなたは日本語シナリオ分析の専門家です。'
@@ -170,9 +165,6 @@ function selectVoiceModels(characterRoles, fullScript) {
 }
 
 function exportToSpreadsheet(params) {
-  var auth = checkAuth();
-  if (!auth.allowed) return { success: false, error: 'Access denied: ' + auth.email };
-
   try {
     var fullScript     = params.fullScript     || '';
     var selectedWork   = params.selectedWork;   // { row, no, title }

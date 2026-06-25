@@ -16,10 +16,6 @@
 //   { mode: 'extract', spreadsheetId: '...' }  … キャラ一覧をスプシに書き出す
 //   { mode: 'run',      spreadsheetId: '...' }  … モデル別Docを生成する
 //
-// SECRET_KEYは（UIでは人間が入力するが）producerからの呼び出しでは
-// このApp自身のScript Propertiesから読み取る。producer側にSECRET_KEYの
-// 値を共有・複製する必要はない。
-//
 // 【doPostの出力】
 //   { ok: true, logs: [...], charCount: 0 }
 //   { ok: false, error: '...' }
@@ -45,7 +41,6 @@ function doPost(e) {
 }
 
 // producerからの呼び出しを確認するための合言葉チェック。
-// UIで人間が入力するSECRET_KEY（generateModelDocs等の引数）とは別の値。
 // 未設定の場合は常に拒否する（安全側のデフォルト）。
 function verifyProducerSecret_(body) {
   var expected = PropertiesService.getScriptProperties().getProperty('PRODUCER_SHARED_KEY');
@@ -53,18 +48,12 @@ function verifyProducerSecret_(body) {
   return !!body && body.secret === expected;
 }
 
-function getSecretKey_() {
-  var key = PropertiesService.getScriptProperties().getProperty('SECRET_KEY');
-  if (!key) throw new Error('SECRET_KEYがスクリプトプロパティに設定されていません');
-  return key;
-}
-
 function runExtract_(body) {
   var spreadsheetId = (body.spreadsheetId || '').toString().trim();
   if (!spreadsheetId) return { ok: false, error: 'spreadsheetId が空です。' };
 
   try {
-    var result = extractCharacterList(spreadsheetId, getSecretKey_());
+    var result = extractCharacterList(spreadsheetId);
     return { ok: result.success, logs: result.logs, charCount: result.charCount, error: result.success ? undefined : result.logs.join('\n') };
   } catch (err) {
     return { ok: false, error: err.message };
@@ -76,7 +65,7 @@ function runGenerate_(body) {
   if (!spreadsheetId) return { ok: false, error: 'spreadsheetId が空です。' };
 
   try {
-    var result = generateModelDocs(spreadsheetId, getSecretKey_());
+    var result = generateModelDocs(spreadsheetId);
     return { ok: result.success, logs: result.logs, error: result.success ? undefined : result.logs.join('\n') };
   } catch (err) {
     return { ok: false, error: err.message };

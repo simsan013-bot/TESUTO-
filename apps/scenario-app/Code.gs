@@ -3,11 +3,8 @@
 // プロンプト・生成ロジックは無改修。今回の移植で追加したのは下記のみ。
 //
 // 1. 各公開関数（designScenario/checkSimilarity/writeStep/regenerateStep）の
-//    本体を `_` 付きのコア関数に分離した。公開関数はcheckAuth()判定後にコア関数を
-//    呼ぶだけの薄いラッパーになり、ブラウザ経由（google.script.run）の挙動は
-//    完全に同一のまま。コア関数はWebApi.gs の doPost（producerからの自動実行）が
-//    直接呼ぶ。checkAuth()はSession.getActiveUser()に依存するため、ログインユーザーの
-//    いないサーバー間呼び出し（producerからのHTTP POST）には使えないことが理由。
+//    本体を `_` 付きのコア関数に分離した。コア関数はWebApi.gs の doPost
+//    （producerからの自動実行）も直接呼ぶ。
 // 2. `WebApi.gs` にdoPostを追加（doGetは元のHtmlService出力のまま無改修）。
 
 function doGet() {
@@ -18,8 +15,6 @@ function doGet() {
 
 // ---- シナリオ設計 ----
 function designScenario(refScenario, newTitle) {
-  var auth = checkAuth();
-  if (!auth.allowed) return { success: false, error: 'Access denied: ' + auth.email };
   return designScenario_(refScenario, newTitle);
 }
 
@@ -43,8 +38,6 @@ function designScenario_(refScenario, newTitle) {
 
 // ---- 類似性チェック ----
 function checkSimilarity(params) {
-  var auth = checkAuth();
-  if (!auth.allowed) return { success: false, error: 'Access denied: ' + auth.email };
   return checkSimilarity_(params);
 }
 
@@ -64,8 +57,6 @@ function checkSimilarity_(params) {
 }
 
 function proposeTitle(scenarioDesign) {
-  var auth = checkAuth();
-  if (!auth.allowed) return { success: false, error: 'Access denied: ' + auth.email };
   var provider = getProperty('AI_PROVIDER') || 'claude';
   try {
     var sys = 'あなたはYouTube逆転スカッと系動画のタイトル専門ライターです。シナリオ設計をもとに高クリック率のタイトルを3案提案してください。\n\n'
@@ -81,8 +72,6 @@ function proposeTitle(scenarioDesign) {
 
 // ---- STEPごとの台本生成 ----
 function writeStep(params) {
-  var auth = checkAuth();
-  if (!auth.allowed) return { success: false, error: 'Access denied: ' + auth.email };
   return writeStep_(params);
 }
 
@@ -100,8 +89,6 @@ function writeStep_(params) {
 
 // ---- STEPの再生成 ----
 function regenerateStep(params) {
-  var auth = checkAuth();
-  if (!auth.allowed) return { success: false, error: 'Access denied: ' + auth.email };
   return regenerateStep_(params);
 }
 
