@@ -7,7 +7,8 @@ var PIPELINE_EXECUTION_ORDER = ['シナリオ', 'アナリストFB', '圧縮', '
 var PIPELINE_GATE_AFTER = {
   'アナリストFB': 'A',
   '圧縮': 'B',
-  '編集': 'C'
+  '編集': 'C',
+  'サムネ': '最終確認'
 };
 
 // STEP3で接続済みの既存App呼び出し＋アナリストFB工程。未接続の工程

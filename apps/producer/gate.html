@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sim確認ゲート</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #14161c;
+    color: #e8e8e8;
+    font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+    min-height: 100vh;
+    padding-bottom: 40px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 20px; }
+  .header { padding: 28px 0 18px; border-bottom: 1px solid #2a2d36; }
+  .header-title { font-size: 20px; font-weight: 700; color: #f5c842; }
+  .header-sub { font-size: 12px; color: #888; margin-top: 4px; }
+
+  .refresh-btn {
+    margin-top: 14px;
+    background: #2a2d36;
+    border: 1px solid #3a3d46;
+    border-radius: 7px;
+    color: #ccc;
+    font-size: 13px;
+    padding: 6px 14px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  .card {
+    background: #1c1f27;
+    border: 1px solid #3a3d46;
+    border-radius: 10px;
+    padding: 18px;
+    margin: 18px 0;
+  }
+  .card-title { font-size: 16px; font-weight: 700; color: #f5c842; }
+  .card-meta { font-size: 12px; color: #999; margin-top: 4px; }
+  .gate-badge {
+    display: inline-block;
+    background: #5a3a10;
+    color: #f5c842;
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 6px;
+    padding: 2px 10px;
+    margin-left: 8px;
+  }
+
+  .log-section { margin-top: 14px; border-top: 1px solid #2a2d36; padding-top: 12px; }
+  .log-header { font-size: 12px; color: #999; margin-bottom: 8px; }
+  .log-item {
+    background: #14161c;
+    border: 1px solid #2a2d36;
+    border-radius: 7px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .log-item-meta { color: #888; font-size: 11px; margin-bottom: 4px; }
+  .log-item-reason { color: #e8c0c0; margin-bottom: 4px; white-space: pre-wrap; }
+  .log-item-fix { color: #c0d8e8; white-space: pre-wrap; }
+  .log-empty { color: #666; font-size: 13px; padding: 6px 0; }
+
+  .actions { margin-top: 16px; display: flex; gap: 10px; }
+  .btn {
+    flex: 1;
+    padding: 11px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-clear { background: linear-gradient(135deg, #2a8a3a, #3ac850); color: #06210a; }
+  .btn-clear:disabled { opacity: .45; cursor: not-allowed; }
+
+  .empty { text-align: center; color: #555; padding: 60px 0; font-size: 14px; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #2a8a3a;
+    color: #fff;
+    padding: 10px 22px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: transform .3s ease;
+    z-index: 999;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <div class="header-title">🚦 Sim確認ゲート</div>
+    <div class="header-sub">ゲート待ち（Sim確認待ち）の作品一覧</div>
+    <button class="refresh-btn" onclick="loadItems()">🔄 更新</button>
+  </div>
+
+  <div id="list"><div class="empty">読み込み中…</div></div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  function loadItems() {
+    document.getElementById('list').innerHTML = '<div class="empty">読み込み中…</div>';
+    google.script.run
+      .withSuccessHandler(renderItems)
+      .withFailureHandler(function (err) { showToast('読み込みエラー: ' + err.message, '#8a2a2a'); })
+      .listGateWaitingItems();
+  }
+
+  function renderItems(items) {
+    var list = document.getElementById('list');
+    if (!items || items.length === 0) {
+      list.innerHTML = '<div class="empty">ゲート待ちの作品はありません</div>';
+      return;
+    }
+
+    list.innerHTML = '';
+    items.forEach(function (item) {
+      var card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML =
+        '<div class="card-title">No' + item.workId + '：' + escHtml(item.title)
+          + '<span class="gate-badge">ゲート' + escHtml(item.gate) + '</span></div>'
+        + '<div class="card-meta">現在の工程：' + escHtml(item.currentProcess) + ' / チャンネルID：' + escHtml(item.channelId) + '</div>'
+        + '<div class="log-section">'
+        + '  <div class="log-header">📋 直近のNGログ</div>'
+        + '  <div id="log-' + item.workId + '"><div class="log-empty">読み込み中…</div></div>'
+        + '</div>'
+        + '<div class="actions">'
+        + '  <button class="btn btn-clear" onclick="clearGate(' + item.workId + ')">✅ クリアして次工程へ進める</button>'
+        + '</div>';
+      list.appendChild(card);
+
+      google.script.run
+        .withSuccessHandler(function (logs) { renderLog(item.workId, logs); })
+        .withFailureHandler(function () {})
+        .getRecentNgLogForWorkId(item.workId, 10);
+    });
+  }
+
+  function renderLog(workId, logs) {
+    var el = document.getElementById('log-' + workId);
+    if (!el) return;
+    if (!logs || logs.length === 0) {
+      el.innerHTML = '<div class="log-empty">NGログはありません</div>';
+      return;
+    }
+    var html = '';
+    logs.forEach(function (log) {
+      html += '<div class="log-item">'
+        + '<div class="log-item-meta">' + escHtml(log.checkerName) + ' / ' + log.attempt + '回目 / ' + escHtml(log.timestamp) + '</div>'
+        + '<div class="log-item-reason">理由：' + escHtml(log.reason) + '</div>'
+        + (log.fixInstruction ? '<div class="log-item-fix">修正指示：' + escHtml(log.fixInstruction) + '</div>' : '')
+        + '</div>';
+    });
+    el.innerHTML = html;
+  }
+
+  function clearGate(workId) {
+    if (!confirm('No' + workId + ' のゲートをクリアして次工程へ進めますか？')) return;
+    google.script.run
+      .withSuccessHandler(function () {
+        showToast('✅ クリアしました');
+        loadItems();
+      })
+      .withFailureHandler(function (err) { showToast('エラー: ' + err.message, '#8a2a2a'); })
+      .clearGate(workId);
+  }
+
+  function showToast(msg, bg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.background = bg || '#2a8a3a';
+    t.classList.add('show');
+    setTimeout(function () { t.classList.remove('show'); }, 2400);
+  }
+
+  function escHtml(str) {
+    return (str === null || str === undefined ? '' : String(str))
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  loadItems();
+</script>
+</body>
+</html>

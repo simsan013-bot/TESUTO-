@@ -3,9 +3,11 @@
 // チェッカーNG時のリトライ制御を行う。
 //
 // 時間主導トリガーで runProducerTick() を実行する想定。
-// チェッカー①〜⑦／ディレクターは未実装のため、それらの工程は「実行中」のまま
-// 保留され、後続STEPで recordCheckResult() 等から状態を進められるようになるまで
-// 自動では先に進まない（アナリストFBはapps/analyst-feedback-appとして実装済み）。
+// チェッカー①〜⑦／ディレクターの判定はCheckers.gs/Director.gsに実装済みで、
+// startProcess_() の中でexecutor実行直後に同期的に呼ばれる（runCheckOrDirector_）。
+// ただし対象工程のexecutor自体がまだ正しいpayloadを組み立てられない工程
+// （キャラ別台本以降の一部）はexecutorが実行できないため、判定にも到達しない
+// （詳細はREADMEの既知の未解決事項を参照）。
 
 function runProducerTick() {
   var workIds = listActionableWorkIds();
@@ -35,7 +37,8 @@ function advanceWorkItem_(workId) {
   }
 
   if (stateValue === QUEUE_STATUS.RUNNING || stateValue === QUEUE_STATUS.CHECKING) {
-    // 外部Appの非同期完了待ち、またはチェッカー（STEP4で実装）の判定待ち。
+    // 外部Appの非同期完了待ち、または音声工程のようにisReady_()がfalseで
+    // 判定を保留しているチェッカー待ち（CHECKINGのまま留まる）。
     return;
   }
 
@@ -56,7 +59,7 @@ function startProcess_(workId, processName) {
   updateProcessState(workId, processName, QUEUE_STATUS.RUNNING, null);
 
   if (!executor) {
-    // ディレクター/チェッカー等、STEP4以降で実装予定の工程
+    // payload組み立てが未対応の工程（README参照）。実行できないため待機。
     console.log('工程 "' + processName + '" の実行ロジックは未実装のため待機します。');
     return;
   }
@@ -66,6 +69,32 @@ function startProcess_(workId, processName) {
   var result = executor(payload);
   var outputId = saveStageResult_(workId, row, processName, result);
   updateProcessState(workId, processName, QUEUE_STATUS.CHECKING, outputId);
+  runCheckOrDirector_(workId, processName, row, result);
+}
+
+// チェッカー①〜⑦／ディレクターの判定を実行し、recordCheckResult()で
+// OK→完了／NG→リトライ／3回目Sim確認ゲートへの分岐を行う。
+// 判定対象が無い工程（シナリオ等）はチェックなしでそのまま完了させる。
+function runCheckOrDirector_(workId, processName, row, result) {
+  if (processName === 'アナリストFB') {
+    var directorVerdict = runDirectorJudgment_(result);
+    recordCheckResult(workId, processName, 'ディレクター', directorVerdict.ok, directorVerdict.reason, directorVerdict.fixInstruction);
+    return;
+  }
+
+  var def = CHECKER_DEFINITIONS[processName];
+  if (!def) {
+    recordCheckResult(workId, processName, '（チェックなし）', true, '', '');
+    return;
+  }
+  if (!def.isReady_(result)) {
+    // 例：音声工程はDoc単位の複数回呼び出しが必要なため、全件完了まで判定を保留する。
+    return;
+  }
+
+  var content = def.extractContent_(result);
+  var verdict = runCheckerJudgment_(processName, content);
+  recordCheckResult(workId, processName, def.checkerName, verdict.ok, verdict.reason, verdict.fixInstruction);
 }
 
 // 工程ごとに必要な入力を組み立てる。
@@ -126,14 +155,13 @@ function advanceToNextProcessAfterGate_(workId, processName) {
   updateOverallStatus(workId, QUEUE_STATUS.WAITING, next, 'なし');
 }
 
-// Sim確認ゲートをクリアして次工程へ進める（STEP7のゲートUIから呼ばれる想定。
-// 現時点では手動実行 or シンプルなdoPostリクエストから呼ぶ）
+// Sim確認ゲートをクリアして次工程へ進める（GateUi.gs/gate.htmlのゲートUIから呼ばれる）
 function clearGate(workId) {
   var row = getQueueRow(workId);
   advanceToNextProcessAfterGate_(workId, row['現在の工程']);
 }
 
-// チェッカー（STEP4で実装）が判定結果を確定させた際に呼び出す共通エントリーポイント。
+// チェッカー／ディレクターが判定結果を確定させた際に呼び出す共通エントリーポイント。
 // OK→工程完了、NG→リトライ（最大2回）→3回目もNGならSim確認ゲートへエスカレーション。
 function recordCheckResult(workId, processName, checkerName, isOk, reason, fixInstruction) {
   if (isOk) {
@@ -157,6 +185,9 @@ function recordCheckResult(workId, processName, checkerName, isOk, reason, fixIn
 }
 
 function doGet(e) {
+  if (e && e.parameter && e.parameter.view === 'gate') {
+    return renderGateUi_();
+  }
   return ContentService.createTextOutput('OK').setMimeType(ContentService.MimeType.TEXT);
 }
 

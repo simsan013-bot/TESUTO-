@@ -3,9 +3,44 @@
 プロデューサー（全体統括AI）のGASプロジェクト。自動化キューシート／NGログシートの
 CRUDと、パイプラインのオーケストレーション（状態管理・ゲート引き上げ・リトライ制御）を持つ。
 
-実装範囲はSTEP1〜3（自動化キューシート、プロデューサーの状態機械、既存6App呼び出し）＋
-アナリストFB工程（`apps/analyst-feedback-app`）。チェッカー①〜⑦・ディレクター・
-新規3App（編集／サムネ／投稿）・ゲートUI・channels設定はまだ未実装（指示書7章のSTEP4以降）。
+実装範囲はSTEP1〜4（自動化キューシート、プロデューサーの状態機械、既存6App呼び出し、
+アナリストFB工程、チェッカー①〜⑦・ディレクター・Sim確認ゲートUI）。
+新規3App（編集／サムネ／投稿）・channels設定はまだ未実装（指示書7章のSTEP6・8）。
+
+## チェッカー①〜⑦・ディレクター・ゲートUI
+
+`Checkers.gs`（チェッカー①〜⑦の判定定義）・`Director.gs`（ディレクター判定）・
+`AI.gs`（判定用のClaude API呼び出し）・`GateUi.gs`+`gate.html`（Sim確認ゲートの
+確認画面）を追加。判定は`startProcess_`（`Code.gs`）の中で、各工程のexecutorが
+結果を返した直後に**同期的に**実行される（`runCheckOrDirector_`）。
+
+- OK→工程完了、NG→修正指示を出して再実行（最大2回）→3回目もNGならその工程の
+  ゲート（無ければ「なし」）にSim確認待ちとしてエスカレーション（既存の
+  `recordCheckResult`のロジックをそのまま使用、変更なし）
+- NG理由・修正指示は必ずNGログシートに記録される（指示書3.5章準拠）
+- チェッカーの`fixInstruction`は次回実行時のpayloadに自動で注入されない
+  （指示書3.5章の運用ルール通り、傾向が見えたら**生成側プロンプト**に
+  人間が反映する想定のため。チェッカー側で自動修正ループにはしない）
+
+### 実際に発火するのは①＋ディレクター＋ゲートA/Bのみ（現状）
+
+チェッカー②〜⑦の判定ロジック自体はすべて実装済みだが、`キャラ別台本`以降の
+工程は`buildStagePayload_`（`Code.gs`）がまだ各App固有の正しいpayloadを
+組み立てられないため、executor自体が実行できず判定にも到達しない
+（`キャラ別台本`=spreadsheetId未接続、`音声`=Fish Audio用payload未接続、
+`画像`=PRP生成App用payload未接続、`猫感想`=`PIPELINE_EXECUTORS`未登録、
+`編集`/`サムネ`=App自体が未実装）。これらは別途解消が必要な既知の課題で、
+解消され次第、追加実装なしでチェッカーが自動的に発火するようにしてある。
+
+ゲートUI自体はキューシート/NGログシートのみを見るため、上記の制約と無関係に
+今すぐ動作する（後述のURLで確認可）。
+
+## Sim確認ゲートUIの開き方
+
+producerのWebApp URLの末尾に `?view=gate` を付けて開く（例：
+`https://script.google.com/macros/s/xxxx/exec?view=gate`）。
+Sim確認待ちの作品一覧・直近のNGログ・「クリアして次工程へ進める」ボタンを表示する。
+クリアボタンは内部で既存の`clearGate(workId)`を呼ぶだけで、新しいロジックは無い。
 
 ## シナリオ→アナリストFB→圧縮 間のデータ受け渡し
 
@@ -57,7 +92,8 @@ setScriptProperties({
   PRP_APP_URL: '...',
   PRP_APP_KEY: '...',
   IMAGE_APP_URL: '...',
-  IMAGE_APP_KEY: '...'
+  IMAGE_APP_KEY: '...',
+  CLAUDE_KEY: '...'              // チェッカー・ディレクターの判定に使うAnthropic APIキー
 });
 ```
 
@@ -79,8 +115,10 @@ setupNgLogSheet();   // NGログシートのヘッダーを作成
 | `getQueueRow(workId)` | 行をオブジェクトとして取得 |
 | `updateProcessState(workId, processName, status, outputId)` | 工程の状態/出力ID/更新時刻を更新 |
 | `runProducerTick()` | キューを巡回し、各作品を1ステップ進める（時間主導トリガー用） |
-| `recordCheckResult(workId, processName, checkerName, isOk, reason, fixInstruction)` | チェッカー（STEP4で実装予定）からの判定結果を受けてリトライ/エスカレーションを処理 |
+| `recordCheckResult(workId, processName, checkerName, isOk, reason, fixInstruction)` | チェッカー／ディレクターからの判定結果を受けてリトライ/エスカレーションを処理 |
+| `runCheckOrDirector_(workId, processName, row, result)` | 工程実行直後にチェッカー/ディレクター判定を呼び出す（`startProcess_`内部から自動実行） |
 | `clearGate(workId)` | Sim確認ゲートをクリアして次工程へ進める |
+| `listGateWaitingItems()` / `getRecentNgLogForWorkId(workId, limit)` | ゲートUI（`gate.html`）が確認画面表示に使う読み取り専用関数 |
 | `installProducerTrigger(intervalMinutes)` | `runProducerTick` を時間主導トリガーで自動実行するよう設定する（省略時は30分おき） |
 | `uninstallProducerTrigger()` | 自動実行トリガーを解除する |
 
