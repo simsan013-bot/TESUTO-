@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>逆転劇構造最適化AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;700&family=Shippori+Mincho:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f; --surface: #12121a; --surface2: #1a1a26;
+    --border: #2a2a3a; --accent: #c8a96e; --accent2: #7c6aff;
+    --text: #e8e4dc; --text2: #8a8490;
+    --danger: #e05c5c; --success: #5ce0a0; --warn: #e0b05c;
+    --edit: #1e2a1e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Noto Serif JP', serif; min-height: 100vh; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0; opacity: 0.6;
+  }
+  .container { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 40px 20px 80px; }
+
+  header { text-align: center; margin-bottom: 36px; animation: fadeDown 0.7s ease both; }
+  .eyebrow { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.3em; color: var(--accent); text-transform: uppercase; margin-bottom: 10px; }
+  header h1 { font-family: 'Shippori Mincho', serif; font-size: clamp(20px, 3.5vw, 30px); font-weight: 700; letter-spacing: 0.08em; line-height: 1.4; background: linear-gradient(135deg, var(--text) 0%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .divider { width: 50px; height: 1px; background: linear-gradient(90deg, transparent, var(--accent), transparent); margin: 12px auto 0; }
+
+  /* Phase bar */
+  .phase-bar { display: flex; align-items: center; justify-content: center; margin-bottom: 28px; flex-wrap: wrap; gap: 4px; }
+  .phase-item { display: flex; align-items: center; gap: 5px; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.06em; color: var(--text2); transition: color 0.4s; white-space: nowrap; }
+  .phase-item.active { color: var(--accent); }
+  .phase-item.done { color: var(--success); }
+  .phase-num { width: 20px; height: 20px; border-radius: 50%; border: 1px solid currentColor; display: flex; align-items: center; justify-content: center; font-size: 9px; transition: all 0.4s; flex-shrink: 0; }
+  .phase-item.active .phase-num { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .phase-item.done .phase-num { background: var(--success); border-color: var(--success); color: var(--bg); }
+  .phase-line { width: 16px; height: 1px; background: var(--border); flex-shrink: 0; }
+  .phase-line.done { background: var(--success); }
+
+  /* Section */
+  .section { background: var(--surface); border: 1px solid var(--border); border-radius: 2px; margin-bottom: 20px; position: relative; overflow: hidden; animation: fadeUp 0.5s ease both; }
+  .section-head { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .section-tag { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.25em; color: var(--accent); text-transform: uppercase; }
+  .section-title { font-family: 'Shippori Mincho', serif; font-size: 15px; font-weight: 700; }
+  .section-body { padding: 20px; }
+  .section-top { position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent2), var(--accent)); }
+
+  textarea, input[type="text"] { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 2px; color: var(--text); outline: none; transition: border-color 0.3s; }
+  textarea:focus, input[type="text"]:focus { border-color: var(--accent2); }
+  textarea { font-family: 'Noto Serif JP', serif; font-size: 14px; line-height: 1.8; padding: 14px; resize: vertical; min-height: 140px; }
+  input[type="text"] { font-family: 'Shippori Mincho', serif; font-size: 15px; padding: 12px 14px; }
+  input[type="text"]::placeholder { color: var(--text2); font-size: 13px; }
+  .field { margin-bottom: 14px; }
+  .field-label { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.18em; color: var(--text2); margin-bottom: 6px; }
+  .char-count { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text2); text-align: right; margin-top: 4px; }
+
+  .output-area { width: 100%; background: var(--edit); border: 1px solid #3a4a3a; border-radius: 2px; color: var(--text); font-family: 'Noto Serif JP', serif; font-size: 14px; line-height: 1.9; padding: 16px; resize: vertical; min-height: 260px; outline: none; transition: border-color 0.3s; }
+  .output-area:focus { border-color: var(--success); }
+  .output-hint { font-family: 'Space Mono', monospace; font-size: 9px; color: #5a7a5a; margin-top: 4px; }
+
+  /* 文字数メーター */
+  .char-meter { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 10px 14px; border-radius: 2px; background: var(--surface2); border: 1px solid var(--border); }
+  .char-meter.ok { border-color: var(--success); background: #0e1e0e; }
+  .char-meter.ng { border-color: var(--danger); background: #1e0e0e; }
+  .char-meter.warn { border-color: var(--warn); background: #1e180e; }
+  .meter-icon { font-size: 16px; flex-shrink: 0; }
+  .meter-info { flex: 1; }
+  .meter-count { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: bold; }
+  .meter-count.ok { color: var(--success); }
+  .meter-count.ng { color: var(--danger); }
+  .meter-count.warn { color: var(--warn); }
+  .meter-label { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--text2); margin-top: 2px; }
+  .meter-bar-wrap { width: 100%; height: 4px; background: var(--border); border-radius: 2px; margin-top: 6px; }
+  .meter-bar { height: 4px; border-radius: 2px; transition: width 0.5s, background 0.5s; }
+  .meter-bar.ok { background: var(--success); }
+  .meter-bar.ng { background: var(--danger); }
+  .meter-bar.warn { background: var(--warn); }
+  .meter-note { font-family: 'Noto Serif JP', serif; font-size: 12px; margin-top: 6px; }
+  .meter-note.ng { color: #ff8888; }
+  .meter-note.ok { color: var(--success); }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 22px; background: transparent; border: 1px solid var(--accent); color: var(--accent); font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer; border-radius: 1px; transition: all 0.3s; margin-top: 4px; }
+  .btn:hover:not(:disabled) { background: var(--accent); color: var(--bg); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-run { border-color: var(--accent2); color: var(--accent2); font-size: 11px; padding: 11px 28px; }
+  .btn-run:hover:not(:disabled) { background: var(--accent2); color: #fff; }
+  .btn-copy { border-color: var(--success); color: var(--success); }
+  .btn-copy:hover:not(:disabled) { background: var(--success); color: var(--bg); }
+  .btn-next { border-color: var(--accent); color: var(--accent); }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
+  .copy-ok { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--success); opacity: 0; transition: opacity 0.3s; }
+  .copy-ok.show { opacity: 1; }
+
+  /* Proposal cards */
+  .proposal-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 2px; padding: 10px 14px; cursor: pointer; font-family: 'Shippori Mincho', serif; font-size: 14px; line-height: 1.6; color: var(--text2); transition: all 0.25s; margin-bottom: 7px; }
+  .proposal-card:hover { border-color: var(--accent); color: var(--text); }
+  .proposal-card.selected { border-color: var(--accent); color: var(--text); border-left: 3px solid var(--accent); }
+  .proposal-num { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.2em; color: var(--accent); margin-bottom: 4px; }
+
+  /* Step progress */
+  .step-progress { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+  .step-pip { width: 32px; height: 6px; border-radius: 3px; background: var(--border); transition: background 0.4s; flex-shrink: 0; }
+  .step-pip.active { background: var(--accent2); }
+  .step-pip.done { background: var(--success); }
+
+  /* Proc / Error */
+  .proc-box { display: none; align-items: center; gap: 10px; padding: 12px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: 2px; margin-top: 12px; font-family: 'Space Mono', monospace; font-size: 11px; color: var(--text2); }
+  .proc-box.show { display: flex; }
+  .spinner { width: 14px; height: 14px; flex-shrink: 0; border: 2px solid var(--border); border-top-color: var(--accent2); border-radius: 50%; animation: spin 0.7s linear infinite; }
+  .err-box { display: none; margin-top: 12px; background: #1e0808; border: 1px solid var(--danger); border-left: 4px solid var(--danger); border-radius: 2px; overflow: hidden; }
+  .err-box.show { display: block; }
+  .err-head { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; background: #280a0a; border-bottom: 1px solid #3a1010; }
+  .err-head-left { display: flex; align-items: center; gap: 7px; }
+  .err-badge { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.2em; color: var(--danger); text-transform: uppercase; }
+  .err-close-btn { background: transparent; border: 1px solid #3a1010; color: #c05050; font-size: 11px; cursor: pointer; padding: 2px 6px; border-radius: 1px; font-family: 'Space Mono', monospace; }
+  .err-body { padding: 10px 12px; }
+  .err-msg { font-family: 'Space Mono', monospace; font-size: 11px; color: #ff8888; line-height: 1.7; word-break: break-all; }
+  .err-hint-block { margin-top: 8px; padding: 8px 10px; background: #240c0c; border: 1px solid #3a1010; border-radius: 2px; font-family: 'Noto Serif JP', serif; font-size: 12px; color: #c08080; line-height: 1.7; }
+
+  /* Global toast */
+  .global-err-toast { display: none; position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 9999; min-width: 280px; max-width: 560px; width: 92%; background: #1e0808; border: 1px solid var(--danger); border-left: 4px solid var(--danger); border-radius: 2px; box-shadow: 0 8px 40px rgba(0,0,0,0.7); }
+  .global-err-toast.show { display: block; }
+
+  /* Final output */
+  .final-area { width: 100%; background: #0e1a0e; border: 1px solid #3a5a3a; border-radius: 2px; color: var(--text); font-family: 'Noto Serif JP', serif; font-size: 14px; line-height: 1.9; padding: 18px; resize: vertical; min-height: 400px; outline: none; }
+
+  .hidden { display: none; }
+  .reset-row { text-align: center; margin-top: 32px; }
+  .btn-reset { background: transparent; border: 1px solid var(--border); color: var(--text2); font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.15em; padding: 7px 18px; cursor: pointer; border-radius: 1px; transition: all 0.3s; }
+  .btn-reset:hover { border-color: var(--text2); color: var(--text); }
+
+  @keyframes fadeDown { from {opacity:0;transform:translateY(-12px);} to {opacity:1;transform:translateY(0);} }
+  @keyframes fadeUp { from {opacity:0;transform:translateY(12px);} to {opacity:1;transform:translateY(0);} }
+  @keyframes spin { to {transform:rotate(360deg);} }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+</style>
+</head>
+<body>
+
+<div class="global-err-toast" id="globalToast">
+  <div class="err-head">
+    <div class="err-head-left"><span>&#9888;</span><span class="err-badge">System Error</span></div>
+    <button class="err-close-btn" onclick="hideGlobalToast()">&#10005;</button>
+  </div>
+  <div class="err-body"><div class="err-msg" id="globalToastMsg"></div></div>
+</div>
+
+<div class="container">
+  <header>
+    <p class="eyebrow">Scenario Optimization Engine</p>
+    <h1>逆転劇構造最適化AI</h1>
+    <div class="divider"></div>
+  </header>
+
+  <!-- Phase bar -->
+  <div class="phase-bar">
+    <div class="phase-item active" id="ph1"><div class="phase-num">1</div><span>参考シナリオ</span></div>
+    <div class="phase-line" id="pl1"></div>
+    <div class="phase-item" id="ph2"><div class="phase-num">2</div><span>設計</span></div>
+    <div class="phase-line" id="pl2"></div>
+    <div class="phase-item" id="ph_chk"><div class="phase-num">3</div><span>類似チェック</span></div>
+    <div class="phase-line" id="pl_chk"></div>
+    <div class="phase-item" id="ph3"><div class="phase-num">4</div><span>タイトル</span></div>
+    <div class="phase-line" id="pl3"></div>
+    <div class="phase-item" id="ph4"><div class="phase-num">5</div><span>台本生成</span></div>
+    <div class="phase-line" id="pl4"></div>
+    <div class="phase-item" id="ph5"><div class="phase-num">5</div><span>完成</span></div>
+  </div>
+
+  <!-- PHASE 1: 参考シナリオ -->
+  <div class="section" id="sec1">
+    <div class="section-top"></div>
+    <div class="section-head"><span class="section-tag">Phase 01</span><span class="section-title">参考シナリオを入力</span></div>
+    <div class="section-body">
+      <div class="field">
+        <p class="field-label">&#9658; 参考シナリオ本文</p>
+        <textarea id="refScenario" placeholder="参考にするシナリオの本文をここに貼り付けてください..."></textarea>
+        <p class="char-count" id="charCount">0 文字</p>
+      </div>
+      <div class="field">
+        <p class="field-label">&#9658; 新規シナリオタイトル（仮タイトルでもOK）</p>
+        <input type="text" id="newTitleInput" placeholder="例：「理不尽な上司に全責任を押し付けられた私が、本社査察で全てを暴いた話」" maxlength="200">
+        <p style="font-size:11px;color:var(--text2);margin-top:5px;">タイトルの内容・雰囲気をシナリオ設計に反映します。後から修正もできます。</p>
+      </div>
+      <div class="err-box" id="err1">
+        <div class="err-head"><div class="err-head-left"><span>&#9888;</span><span class="err-badge">Error</span></div><button class="err-close-btn" onclick="clearErr('err1')">&#10005;</button></div>
+        <div class="err-body"><div class="err-msg" id="err1-msg"></div><div class="err-hint-block" id="err1-hint" style="display:none;" id="err1-hint-text"></div></div>
+      </div>
+      <div class="proc-box" id="proc1"><div class="spinner"></div><span>シナリオ設計を生成中...</span></div>
+      <button class="btn btn-run" id="btn1" onclick="runDesign()">&#9654; シナリオ設計を生成</button>
+    </div>
+  </div>
+
+  <!-- PHASE 2: シナリオ設計 -->
+  <div class="section hidden" id="sec2">
+    <div class="section-top"></div>
+    <div class="section-head"><span class="section-tag">Phase 02</span><span class="section-title">シナリオ設計 — 確認・編集</span></div>
+    <div class="section-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.7;">内容を確認・編集してください。OKなら「台本作成へ進む」へ。</p>
+      <textarea class="output-area" id="designOutput" spellcheck="false"></textarea>
+      <p class="output-hint">&#9998; 直接編集可能</p>
+      <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyText('designOutput','copyOk2')">&#9112; コピー</button>
+        <span class="copy-ok" id="copyOk2">&#10003; コピーしました</span>
+        <button class="btn" onclick="runCheck()" style="border-color:#7c6aff;color:#7c6aff;" id="btnCheck">&#10003; 類似性チェックを実行</button>
+        <button class="btn btn-next" onclick="goToPhase3()" style="margin-left:auto;border-color:var(--text2);color:var(--text2);font-size:10px;" id="btnSkipCheck">チェックをスキップして進む &#9654;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE CHECK: 類似性チェック -->
+  <div class="section hidden" id="sec_chk">
+    <div class="section-top"></div>
+    <div class="section-head">
+      <span class="section-tag">Phase 03</span>
+      <span class="section-title">類似性チェック — 確認・編集</span>
+    </div>
+    <div class="section-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.8;">
+        元シナリオと新規シナリオ設計の酷似性チェック結果です。<br>
+        <strong style="color:var(--accent);">改善提案・意外な展開案は直接テキストを編集できます。</strong><br>
+        内容を確認・編集したら「タイトル確認へ進む」ボタンを押してください。
+      </p>
+      <textarea class="output-area" id="checkOutput" spellcheck="false" style="min-height:360px;"></textarea>
+      <p class="output-hint">&#9998; 改善提案・展開案は直接編集可能</p>
+      <div class="err-box" id="err_chk">
+        <div class="err-head"><div class="err-head-left"><span>&#9888;</span><span class="err-badge">Error</span></div><button class="err-close-btn" onclick="clearErr('err_chk')">&#10005;</button></div>
+        <div class="err-body"><div class="err-msg" id="err_chk-msg"></div><div class="err-hint-block" id="err_chk-hint" style="display:none;"></div></div>
+      </div>
+      <div class="proc-box" id="proc_chk"><div class="spinner"></div><span>類似性チェック中...</span></div>
+      <div class="btn-row" id="chkBtnRow" style="display:none;">
+        <button class="btn btn-copy" onclick="copyText('checkOutput','copyOk_chk')">&#9112; コピー</button>
+        <span class="copy-ok" id="copyOk_chk">&#10003; コピーしました</span>
+        <button class="btn btn-run" onclick="goToPhase3()" style="margin-left:auto;">タイトル確認へ進む &#9654;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 3: タイトル -->
+  <div class="section hidden" id="sec3">
+    <div class="section-top"></div>
+    <div class="section-head"><span class="section-tag">Phase 03</span><span class="section-title">タイトル確認・編集</span></div>
+    <div class="section-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.7;">Phase 01で入力したタイトルをセットしました。修正があれば編集してください。<br>追加提案が欲しい場合は「タイトルを再提案」ボタンを使ってください。</p>
+      <div id="titleProposals" style="display:none;margin-bottom:14px;">
+        <p class="field-label">&#9658; 追加提案タイトル（クリックで選択）</p>
+        <div id="proposalList"></div>
+      </div>
+      <div class="field">
+        <p class="field-label">&#9658; 使用するタイトル（直接編集可）</p>
+        <input type="text" id="newTitle" placeholder="ここにタイトルを入力してください" maxlength="200">
+      </div>
+      <button class="btn" id="btnRepropose" onclick="repropose()" style="border-color:var(--text2);color:var(--text2);font-size:10px;padding:8px 16px;margin-top:0;margin-bottom:4px;">&#8635; タイトルを再提案</button>
+      <div class="err-box" id="err3">
+        <div class="err-head"><div class="err-head-left"><span>&#9888;</span><span class="err-badge">Error</span></div><button class="err-close-btn" onclick="clearErr('err3')">&#10005;</button></div>
+        <div class="err-body"><div class="err-msg" id="err3-msg"></div><div class="err-hint-block" id="err3-hint" style="display:none;"></div></div>
+      </div>
+      <div class="proc-box" id="proc3"><div class="spinner"></div><span id="proc3text">タイトルを提案中...</span></div>
+      <button class="btn btn-run" id="btn3" onclick="startStepGeneration()" style="display:none;">&#9654; STEP0から台本生成を開始</button>
+    </div>
+  </div>
+
+  <!-- PHASE 4: STEPごとの台本生成 -->
+  <div class="section hidden" id="sec4">
+    <div class="section-top"></div>
+    <div class="section-head">
+      <span class="section-tag">Phase 04</span>
+      <span class="section-title" id="sec4Title">STEP0 生成中</span>
+    </div>
+    <div class="section-body">
+      <!-- STEPプログレスバー -->
+      <div class="step-progress" id="stepProgress">
+        <div class="step-pip" id="pip0"></div>
+        <div class="step-pip" id="pip1"></div>
+        <div class="step-pip" id="pip2"></div>
+        <div class="step-pip" id="pip3"></div>
+        <div class="step-pip" id="pip4"></div>
+        <div class="step-pip" id="pip5"></div>
+        <div class="step-pip" id="pip6"></div>
+        <div class="step-pip" id="pip7"></div>
+      </div>
+
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;" id="stepDesc"></p>
+
+      <!-- 出力エリア -->
+      <textarea class="output-area" id="stepOutput" spellcheck="false"></textarea>
+      <p class="output-hint">&#9998; 直接編集可能</p>
+
+      <!-- 文字数メーター -->
+      <div class="char-meter" id="charMeter">
+        <div class="meter-icon" id="meterIcon">&#9675;</div>
+        <div class="meter-info">
+          <div class="meter-count" id="meterCount">0 字</div>
+          <div class="meter-label" id="meterLabel">実質文字数（【名前】「」==  ==・空白を除く）</div>
+          <div class="meter-bar-wrap"><div class="meter-bar" id="meterBar" style="width:0%"></div></div>
+          <div class="meter-note" id="meterNote"></div>
+        </div>
+      </div>
+
+      <div class="err-box" id="err4">
+        <div class="err-head"><div class="err-head-left"><span>&#9888;</span><span class="err-badge">Error</span></div><button class="err-close-btn" onclick="clearErr('err4')">&#10005;</button></div>
+        <div class="err-body"><div class="err-msg" id="err4-msg"></div><div class="err-hint-block" id="err4-hint" style="display:none;"></div></div>
+      </div>
+      <div class="proc-box" id="proc4"><div class="spinner"></div><span id="proc4text">生成中...</span></div>
+
+      <div class="btn-row" id="stepBtnRow" style="display:none;">
+        <button class="btn btn-copy" onclick="copyText('stepOutput','copyOk4')">&#9112; コピー</button>
+        <span class="copy-ok" id="copyOk4">&#10003; コピーしました</span>
+        <button class="btn" id="btnRegen" onclick="regenStep()" style="border-color:var(--warn);color:var(--warn);">&#8635; 再生成（文字数不足）</button>
+        <button class="btn btn-run" id="btnNext" onclick="goNextStep()" style="margin-left:auto;">次のSTEPへ &#9654;</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PHASE 5: 台本完成 -->
+  <div class="section hidden" id="sec5">
+    <div class="section-top"></div>
+    <div class="section-head"><span class="section-tag">Phase 05</span><span class="section-title">台本完成 — 全文確認・編集</span></div>
+    <div class="section-body">
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.7;">全STEPの台本が完成しました。直接編集してから「コピー」してください。</p>
+      <div class="char-meter" id="finalMeter">
+        <div class="meter-icon" id="finalMeterIcon">&#9675;</div>
+        <div class="meter-info">
+          <div class="meter-count" id="finalMeterCount">0 字</div>
+          <div class="meter-label">全体実質文字数（【名前】「」== ==・空白を除く）</div>
+          <div class="meter-bar-wrap"><div class="meter-bar" id="finalMeterBar" style="width:0%"></div></div>
+        </div>
+      </div>
+      <textarea class="final-area" id="finalOutput" spellcheck="false" style="margin-top:14px;"></textarea>
+      <div class="btn-row">
+        <button class="btn btn-copy" onclick="copyText('finalOutput','copyOk5')">&#9112; 全文コピー</button>
+        <span class="copy-ok" id="copyOk5">&#10003; コピーしました</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="reset-row" id="resetRow" style="display:none;">
+    <button class="btn-reset" onclick="resetAll()">&#8635; 最初からやり直す</button>
+  </div>
+</div>
+
+<script>
+// ---- 設定 ----
+var STEP_NAMES = [
+  'STEP0【導入・フック】',
+  'STEP1【屈辱の始まり】',
+  'STEP2【静かな積み上げ】',
+  'STEP3【事件発生と理不尽】',
+  'STEP4【追放と水面下の反転】',
+  'STEP5【完全逆転・公開断罪】',
+  'STEP6【救済と再出発】',
+  'STEP7【締め】'
+];
+var STEP_MIN = [400, 1000, 1500, 1500, 1500, 1500, 1000, 500];
+var STEP_DESC = [
+  '冒頭の不可逆イベントで視聴者を掴む。逆転方法は明示しない。',
+  '主人公の弱い立場・悪役の理不尽さ・最初の公開屈辱を積み上げる。',
+  '主人公の隠れた優秀さと伏線を自然に仕込む。釣り針(1)を配置。',
+  'メイン事件・濡れぎぬ・責任転嫁。読者の怒りを最大化する。',
+  'どん底に落とす。水面下で反転の準備。釣り針(2)を配置。',
+  '公開断罪・証拠提示・立場逆転・二段オチ。スカッと最高潮。',
+  '名誉回復・尊厳回復・次の誰かへの優しさ。静かな解放感。',
+  'ストーリー総括・視聴者への余韻・エンディング固定文。'
+];
+
+var currentStep = 0;
+var stepTexts = [];  // 各STEPの本文を保存
+
+// ---- 実質文字数カウント ----
+function countEffective(text) {
+  var t = text;
+  // 【キャラ名】ラベルを除去
+  t = t.replace(/【[^】]*】/g, '');
+  // 「」を除去（中の文字は残す）
+  t = t.replace(/[「」]/g, '');
+  // == 場面名 == を除去
+  t = t.replace(/==\s*[^=\n]*\s*==/g, '');
+  // 空白・改行・タブを除去
+  t = t.replace(/[\s\n\r\t]/g, '');
+  return t.length;
+}
+
+// ---- 文字数メーター更新 ----
+function updateMeter(textareaId, meterId, iconId, countId, barId, noteId, minChars) {
+  var text = document.getElementById(textareaId).value;
+  var count = countEffective(text);
+  var pct = Math.min(100, Math.round(count / minChars * 100));
+  var status = count >= minChars ? 'ok' : (count >= minChars * 0.7 ? 'warn' : 'ng');
+
+  var meterEl = document.getElementById(meterId);
+  meterEl.className = 'char-meter ' + status;
+
+  document.getElementById(iconId).textContent = status === 'ok' ? '✓' : (status === 'warn' ? '△' : '×');
+  var countEl = document.getElementById(countId);
+  countEl.className = 'meter-count ' + status;
+  countEl.textContent = count.toLocaleString() + ' 字';
+
+  var barEl = document.getElementById(barId);
+  barEl.className = 'meter-bar ' + status;
+  barEl.style.width = pct + '%';
+
+  if (noteId) {
+    var noteEl = document.getElementById(noteId);
+    if (status === 'ok') {
+      noteEl.className = 'meter-note ok';
+      noteEl.textContent = '✓ 必要文字数（' + minChars + '字）を達成しています';
+    } else {
+      var shortage = minChars - count;
+      noteEl.className = 'meter-note ng';
+      noteEl.textContent = '⚠ あと ' + shortage.toLocaleString() + ' 字必要です（必要：' + minChars + '字）';
+    }
+  }
+  return status;
+}
+
+// ---- エラー診断 ----
+function diagnoseError(msg) {
+  msg = (msg || '').toLowerCase();
+  if (msg.indexOf('access denied') >= 0 || msg.indexOf('not allowed') >= 0)
+    return 'ALLOWED_EMAILS にあなたのGmailアドレスが登録されていません。コード.gs の ALLOWED_EMAILS を確認してください。';
+  if (msg.indexOf('claude_key') >= 0 || msg.indexOf('openai_key') >= 0 || msg.indexOf('is not set') >= 0)
+    return 'スクリプトプロパティにAPIキーが設定されていません。GAS の「プロジェクトの設定」→「スクリプトプロパティ」で CLAUDE_KEY または OPENAI_KEY を追加してください。';
+  if (msg.indexOf('401') >= 0 || msg.indexOf('unauthorized') >= 0)
+    return 'APIキーが無効です。スクリプトプロパティのキーを確認してください。';
+  if (msg.indexOf('429') >= 0 || msg.indexOf('rate limit') >= 0)
+    return 'APIのレート制限に達しました。しばらく待ってから再試行してください。';
+  if (msg.indexOf('timeout') >= 0 || msg.indexOf('exceeded') >= 0 || msg.indexOf('deadline') >= 0)
+    return 'GASの実行時間制限に達した可能性があります。時間をおいて再試行してください。';
+  return null;
+}
+
+function showErr(boxId, message) {
+  var box = document.getElementById(boxId);
+  var msgEl = document.getElementById(boxId + '-msg');
+  var hint = document.getElementById(boxId + '-hint');
+  if (!message) { box.classList.remove('show'); return; }
+  msgEl.textContent = message;
+  var hintStr = diagnoseError(message);
+  if (hintStr && hint) { hint.textContent = hintStr; hint.style.display = 'block'; }
+  else if (hint) { hint.style.display = 'none'; }
+  box.classList.add('show');
+  setTimeout(function() { box.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
+}
+function clearErr(boxId) { document.getElementById(boxId).classList.remove('show'); }
+function showGlobalToast(msg) {
+  document.getElementById('globalToastMsg').textContent = msg;
+  document.getElementById('globalToast').classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(hideGlobalToast, 18000);
+}
+function hideGlobalToast() { document.getElementById('globalToast').classList.remove('show'); }
+
+// ---- 文字カウント（Phase1）----
+window.addEventListener('load', function() {
+  var ta = document.getElementById('refScenario');
+  if (!ta) return;
+  function update() {
+    document.getElementById('charCount').textContent = ta.value.length.toLocaleString() + ' 文字';
+  }
+  ta.addEventListener('input', update);
+  ta.addEventListener('paste', function() { setTimeout(update, 10); });
+});
+
+// ---- Phase 1 → 2 ----
+function runDesign() {
+  var ref = document.getElementById('refScenario').value.trim();
+  clearErr('err1');
+  if (!ref) { showErr('err1', '参考シナリオを入力してください。'); return; }
+  document.getElementById('btn1').disabled = true;
+  document.getElementById('proc1').classList.add('show');
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      document.getElementById('btn1').disabled = false;
+      document.getElementById('proc1').classList.remove('show');
+      if (!res.success) { showErr('err1', res.error || '不明なエラー'); return; }
+      document.getElementById('designOutput').value = res.result;
+      // Phase1のタイトルをPhase3にセット
+      var t1 = document.getElementById('newTitleInput').value.trim();
+      if (t1) document.getElementById('newTitle').value = t1;
+      document.getElementById('sec2').classList.remove('hidden');
+      setPhase(2);
+      scroll2('sec2');
+    })
+    .withFailureHandler(function(e) {
+      document.getElementById('btn1').disabled = false;
+      document.getElementById('proc1').classList.remove('show');
+      var msg = (e && e.message) ? e.message : 'GAS実行エラー';
+      showErr('err1', msg); showGlobalToast(msg);
+    })
+    .designScenario(document.getElementById('refScenario').value.trim(), document.getElementById('newTitleInput').value.trim());
+}
+
+// ---- 類似性チェック実行 ----
+function runCheck() {
+  var design = document.getElementById('designOutput').value.trim();
+  var ref    = document.getElementById('refScenario').value.trim();
+  clearErr('err_chk');
+
+  document.getElementById('sec_chk').classList.remove('hidden');
+  document.getElementById('chkBtnRow').style.display = 'none';
+  document.getElementById('proc_chk').classList.add('show');
+  document.getElementById('checkOutput').value = '';
+  setPhase('chk');
+  scroll2('sec_chk');
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      document.getElementById('proc_chk').classList.remove('show');
+      if (!res.success) {
+        showErr('err_chk', res.error || '不明なエラー');
+        return;
+      }
+      document.getElementById('checkOutput').value = res.result;
+      document.getElementById('chkBtnRow').style.display = 'flex';
+      scroll2('sec_chk');
+    })
+    .withFailureHandler(function(e) {
+      document.getElementById('proc_chk').classList.remove('show');
+      var msg = (e && e.message) ? e.message : 'GAS実行エラー';
+      showErr('err_chk', msg);
+      showGlobalToast(msg);
+    })
+    .checkSimilarity({ refScenario: ref, scenarioDesign: design });
+}
+
+// ---- Phase 2 → 3 ----
+function goToPhase3() {
+  document.getElementById('sec3').classList.remove('hidden');
+  setPhase(3);
+  document.getElementById('btn3').style.display = 'inline-flex';
+  scroll2('sec3');
+}
+
+// ---- タイトル再提案（ボタン押したときだけ実行） ----
+function repropose() {
+  var design = document.getElementById('designOutput').value.trim();
+  var btnR = document.getElementById('btnRepropose');
+  btnR.disabled = true;
+  document.getElementById('proc3text').textContent = 'タイトルを提案中...';
+  document.getElementById('proc3').classList.add('show');
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      document.getElementById('proc3').classList.remove('show');
+      btnR.disabled = false;
+      if (!res.success) { showErr('err3', 'タイトル提案エラー: ' + (res.error || '不明')); return; }
+      renderProposals(res.result);
+    })
+    .withFailureHandler(function(e) {
+      document.getElementById('proc3').classList.remove('show');
+      btnR.disabled = false;
+      showErr('err3', 'タイトル提案エラー: ' + ((e && e.message) ? e.message : '不明'));
+    })
+    .proposeTitle(design);
+}
+
+function renderProposals(rawText) {
+  var lines = rawText.split('\n');
+  var proposals = [];
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (!line) continue;
+    var cleaned = line.replace(/^[案\d][\d：:.]\s*/, '').replace(/^\d+[.)）：]\s*/, '').trim();
+    if (cleaned.length > 5) proposals.push(cleaned);
+  }
+  if (!proposals.length) return;
+  var list = document.getElementById('proposalList');
+  list.innerHTML = '';
+  for (var j = 0; j < proposals.length; j++) {
+    (function(title, idx) {
+      var card = document.createElement('div');
+      card.className = 'proposal-card';
+      var num = document.createElement('div');
+      num.className = 'proposal-num';
+      num.textContent = '案 ' + (idx + 1);
+      card.appendChild(num);
+      card.appendChild(document.createTextNode(title));
+      card.onclick = function() {
+        var cs = document.getElementsByClassName('proposal-card');
+        for (var k = 0; k < cs.length; k++) cs[k].classList.remove('selected');
+        card.classList.add('selected');
+        document.getElementById('newTitle').value = title;
+      };
+      list.appendChild(card);
+    })(proposals[j], j);
+  }
+  document.getElementById('titleProposals').style.display = 'block';
+}
+// ---- Phase 3 → 4: STEP生成開始 ----
+function startStepGeneration() {
+  var title = document.getElementById('newTitle').value.trim();
+  clearErr('err3');
+  if (!title) { showErr('err3', 'タイトルを選択または入力してください。'); return; }
+  currentStep = 0;
+  stepTexts = [];
+  document.getElementById('sec4').classList.remove('hidden');
+  setPhase(4);
+  scroll2('sec4');
+  generateStep(0);
+}
+
+// ---- STEPを生成 ----
+function generateStep(stepNum) {
+  currentStep = stepNum;
+  var design = document.getElementById('designOutput').value.trim();
+  var title  = document.getElementById('newTitle').value.trim();
+  var prevText = stepTexts.join('\n\n');
+
+  // UI更新
+  document.getElementById('sec4Title').textContent = STEP_NAMES[stepNum] + ' 生成中...';
+  document.getElementById('stepDesc').textContent = STEP_DESC[stepNum];
+  document.getElementById('stepOutput').value = '';
+  document.getElementById('stepBtnRow').style.display = 'none';
+  document.getElementById('charMeter').className = 'char-meter';
+  document.getElementById('meterIcon').textContent = '陵';
+  document.getElementById('meterCount').textContent = '0 字';
+  document.getElementById('meterBar').style.width = '0%';
+  document.getElementById('meterNote').textContent = '';
+  clearErr('err4');
+
+  // pipを更新
+  for (var i = 0; i < 8; i++) {
+    var pip = document.getElementById('pip' + i);
+    if (i < stepNum) pip.className = 'step-pip done';
+    else if (i === stepNum) pip.className = 'step-pip active';
+    else pip.className = 'step-pip';
+  }
+
+  document.getElementById('proc4text').textContent = STEP_NAMES[stepNum] + ' を生成中...';
+  document.getElementById('proc4').classList.add('show');
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      document.getElementById('proc4').classList.remove('show');
+      if (!res.success) { showErr('err4', res.error || '不明なエラー'); return; }
+
+      document.getElementById('stepOutput').value = res.result;
+      document.getElementById('sec4Title').textContent = STEP_NAMES[currentStep] + ' — 確認・編集';
+
+      // 文字数メーター更新
+      var status = updateMeter('stepOutput', 'charMeter', 'meterIcon', 'meterCount', 'meterBar', 'meterNote', STEP_MIN[currentStep]);
+
+      // ステップ出力エリアにinputイベント追加
+      var ta = document.getElementById('stepOutput');
+      ta.oninput = function() {
+        var s = updateMeter('stepOutput', 'charMeter', 'meterIcon', 'meterCount', 'meterBar', 'meterNote', STEP_MIN[currentStep]);
+        updateRegenBtn(s);
+      };
+
+      // 再生成ボタン表示制御
+      updateRegenBtn(status);
+
+      // ボタン表示
+      document.getElementById('stepBtnRow').style.display = 'flex';
+      var btnNext = document.getElementById('btnNext');
+      if (currentStep < 7) {
+        btnNext.textContent = '次のSTEPへ ▶';
+        btnNext.style.display = 'inline-flex';
+      } else {
+        btnNext.textContent = '台本完成 ✓';
+        btnNext.style.display = 'inline-flex';
+      }
+
+      document.getElementById('pip' + currentStep).className = 'step-pip done';
+      scroll2('sec4');
+    })
+    .withFailureHandler(function(e) {
+      document.getElementById('proc4').classList.remove('show');
+      var msg = (e && e.message) ? e.message : 'GAS実行エラー';
+      showErr('err4', msg); showGlobalToast(msg);
+    })
+    .writeStep({ design: design, title: title, stepNum: stepNum, prevText: prevText });
+}
+
+// ---- 再生成ボタンの表示制御 ----
+function updateRegenBtn(status) {
+  var btn = document.getElementById('btnRegen');
+  if (!btn) return;
+  // 文字数不足のときだけ再生成ボタンを表示
+  btn.style.display = (status !== 'ok') ? 'inline-flex' : 'none';
+}
+
+// ---- 再生成 ----
+function regenStep() {
+  var design   = document.getElementById('designOutput').value.trim();
+  var title    = document.getElementById('newTitle').value.trim();
+  var current  = document.getElementById('stepOutput').value;
+  var prevText = stepTexts.slice(0, currentStep).join('\n\n');
+
+  clearErr('err4');
+  document.getElementById('stepBtnRow').style.display = 'none';
+  document.getElementById('proc4text').textContent = STEP_NAMES[currentStep] + ' を再生成中...（現在の内容を踏まえて膨らませます）';
+  document.getElementById('proc4').classList.add('show');
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      document.getElementById('proc4').classList.remove('show');
+      if (!res.success) { showErr('err4', res.error || '不明なエラー'); document.getElementById('stepBtnRow').style.display = 'flex'; return; }
+
+      document.getElementById('stepOutput').value = res.result;
+
+      // 文字数メーター更新
+      var status = updateMeter('stepOutput', 'charMeter', 'meterIcon', 'meterCount', 'meterBar', 'meterNote', STEP_MIN[currentStep]);
+
+      // inputイベント再設定
+      var ta = document.getElementById('stepOutput');
+      ta.oninput = function() {
+        var s = updateMeter('stepOutput', 'charMeter', 'meterIcon', 'meterCount', 'meterBar', 'meterNote', STEP_MIN[currentStep]);
+        updateRegenBtn(s);
+      };
+
+      updateRegenBtn(status);
+      document.getElementById('stepBtnRow').style.display = 'flex';
+      scroll2('charMeter');
+    })
+    .withFailureHandler(function(e) {
+      document.getElementById('proc4').classList.remove('show');
+      document.getElementById('stepBtnRow').style.display = 'flex';
+      var msg = (e && e.message) ? e.message : 'GAS実行エラー';
+      showErr('err4', msg); showGlobalToast(msg);
+    })
+    .regenerateStep({
+      design:      design,
+      title:       title,
+      stepNum:     currentStep,
+      currentText: current,
+      prevText:    prevText,
+      minChars:    STEP_MIN[currentStep]
+    });
+}
+
+// ---- 次のSTEPへ ----
+function goNextStep() {
+  // 現在のSTEPのテキストを保存
+  stepTexts[currentStep] = document.getElementById('stepOutput').value;
+
+  if (currentStep >= 7) {
+    // 全STEP完了 → Phase 5
+    buildFinalOutput();
+    return;
+  }
+  generateStep(currentStep + 1);
+}
+
+// ---- 全文組み立て ----
+function buildFinalOutput() {
+  var full = stepTexts.join('\n\n');
+  document.getElementById('finalOutput').value = full;
+
+  // 全体文字数
+  var total = countEffective(full);
+  var totalMin = 7900; // 各STEP最低の合計
+  var pct = Math.min(100, Math.round(total / totalMin * 100));
+  var status = total >= totalMin ? 'ok' : 'ng';
+  var fm = document.getElementById('finalMeter');
+  fm.className = 'char-meter ' + status;
+  document.getElementById('finalMeterIcon').textContent = status === 'ok' ? '✓' : '×';
+  var fc = document.getElementById('finalMeterCount');
+  fc.className = 'meter-count ' + status;
+  fc.textContent = total.toLocaleString() + ' 字';
+  var fb = document.getElementById('finalMeterBar');
+  fb.className = 'meter-bar ' + status;
+  fb.style.width = pct + '%';
+
+  document.getElementById('sec5').classList.remove('hidden');
+  setPhase(5);
+  document.getElementById('resetRow').style.display = 'block';
+  scroll2('sec5');
+}
+
+// ---- コピー ----
+function copyText(areaId, okId) {
+  var el = document.getElementById(areaId);
+  el.select(); el.setSelectionRange(0, 999999);
+  var ok = false;
+  try { ok = document.execCommand('copy'); } catch(e) {}
+  if (!ok && navigator.clipboard) {
+    navigator.clipboard.writeText(el.value).then(function() { flashOk(okId); });
+    return;
+  }
+  if (ok) flashOk(okId);
+}
+function flashOk(id) {
+  var el = document.getElementById(id);
+  el.classList.add('show');
+  setTimeout(function() { el.classList.remove('show'); }, 2500);
+}
+
+// ---- ヘルパー ----
+function setPhase(n) {
+  // order: ph1, ph2, ph_chk, ph3, ph4, ph5
+  var ps = ['ph1','ph2','ph_chk','ph3','ph4','ph5'];
+  var ls = ['pl1','pl2','pl_chk','pl3','pl4'];
+  var activeIdx;
+  if (n === 'chk') activeIdx = 2;
+  else if (n <= 2) activeIdx = n - 1;
+  else activeIdx = n;  // shift by 1 for the new chk phase
+
+  for (var i = 0; i < ps.length; i++) {
+    var el = document.getElementById(ps[i]);
+    if (!el) continue;
+    if (i < activeIdx)        el.className = 'phase-item done';
+    else if (i === activeIdx) el.className = 'phase-item active';
+    else                      el.className = 'phase-item';
+  }
+  for (var j = 0; j < ls.length; j++) {
+    var lel = document.getElementById(ls[j]);
+    if (!lel) continue;
+    lel.className = (j < activeIdx) ? 'phase-line done' : 'phase-line';
+  }
+}
+function scroll2(id) {
+  setTimeout(function() {
+    document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 200);
+}
+function resetAll() {
+  document.getElementById('refScenario').value = '';
+  document.getElementById('newTitleInput').value = '';
+  document.getElementById('newTitle').value = '';
+  document.getElementById('designOutput').value = '';
+  document.getElementById('stepOutput').value = '';
+  document.getElementById('finalOutput').value = '';
+  document.getElementById('charCount').textContent = '0 文字';
+  document.getElementById('proposalList').innerHTML = '';
+  document.getElementById('titleProposals').style.display = 'none';
+  document.getElementById('btn3').style.display = 'none';
+  document.getElementById('btn1').disabled = false;
+  ['sec2','sec_chk','sec3','sec4','sec5'].forEach(function(id) { document.getElementById(id).classList.add('hidden'); });
+  document.getElementById('checkOutput').value = '';
+  document.getElementById('chkBtnRow').style.display = 'none';
+  ['err1','err3','err4','err_chk'].forEach(function(id) { clearErr(id); });
+  document.getElementById('resetRow').style.display = 'none';
+  hideGlobalToast();
+  currentStep = 0; stepTexts = [];
+  setPhase(1);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

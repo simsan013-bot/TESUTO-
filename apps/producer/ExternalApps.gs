@@ -26,7 +26,11 @@ function callScenarioApp_(payload) {
   return httpPostJson_(
     getRequiredProp_(CONFIG_KEYS.SCENARIO_APP_URL),
     getOptionalProp_(CONFIG_KEYS.SCENARIO_APP_KEY),
-    payload
+    {
+      mode: 'run',
+      refScenario: payload.refScenario,
+      title: payload.title
+    }
   );
 }
 

@@ -52,7 +52,7 @@ setupNgLogSheet();   // NGログシートのヘッダーを作成
 
 | 関数 | 用途 |
 |---|---|
-| `addQueueRow(title, channelId, folderId)` | 新規作品をキューに追加（作品Noを自動採番） |
+| `addQueueRow(title, channelId, folderId, refScenario)` | 新規作品をキューに追加（作品Noを自動採番）。`refScenario`はシナリオApp工程の入力（参考シナリオ本文）。ディレクター実装までの暫定で、手動入力を想定 |
 | `getQueueRow(workId)` | 行をオブジェクトとして取得 |
 | `updateProcessState(workId, processName, status, outputId)` | 工程の状態/出力ID/更新時刻を更新 |
 | `runProducerTick()` | キューを巡回し、各作品を1ステップ進める（時間主導トリガー用） |

@@ -4,7 +4,7 @@
 
 var QUEUE_SHEET_NAME = '自動化キューシート';
 
-var QUEUE_BASE_HEADERS = ['作品No', 'タイトル', 'チャンネルID', 'フォルダID', '全体ステータス', '現在の工程', '現在のゲート'];
+var QUEUE_BASE_HEADERS = ['作品No', 'タイトル', '参考シナリオ', 'チャンネルID', 'フォルダID', '全体ステータス', '現在の工程', '現在のゲート'];
 
 var QUEUE_PROCESS_NAMES = ['シナリオ', '圧縮', 'アナリストFB', 'キャラ別台本', '音声', '猫感想', '画像', '編集', 'サムネ', '投稿'];
 
@@ -73,7 +73,7 @@ function findRowIndexByWorkId_(sheet, workId) {
   return -1;
 }
 
-function addQueueRow(title, channelId, folderId) {
+function addQueueRow(title, channelId, folderId, refScenario) {
   var sheet = getQueueSheet_();
   var map = getHeaderMap_(sheet);
   var lastRow = sheet.getLastRow();
@@ -86,6 +86,7 @@ function addQueueRow(title, channelId, folderId) {
   var rowValues = new Array(sheet.getLastColumn()).fill('');
   rowValues[map['作品No'] - 1] = nextWorkId;
   rowValues[map['タイトル'] - 1] = safeCellValue_(title);
+  rowValues[map['参考シナリオ'] - 1] = safeCellValue_(refScenario || '');
   rowValues[map['チャンネルID'] - 1] = channelId;
   rowValues[map['フォルダID'] - 1] = folderId;
   rowValues[map['全体ステータス'] - 1] = QUEUE_STATUS.WAITING;

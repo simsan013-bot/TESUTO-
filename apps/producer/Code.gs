@@ -65,6 +65,7 @@ function startProcess_(workId, processName) {
   var payload = {
     workId: workId,
     title: row['タイトル'],
+    refScenario: row['参考シナリオ'],
     channelId: row['チャンネルID'],
     folderId: row['フォルダID']
   };
