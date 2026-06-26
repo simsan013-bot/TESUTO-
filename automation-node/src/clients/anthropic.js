@@ -7,7 +7,9 @@
 // CLAUDE_API_KEYに相当）。
 
 const ANTHROPIC_ENDPOINT = 'https://api.anthropic.com/v1/messages';
-const CLAUDE_MODEL = 'claude-sonnet-4-20250514';
+// GAS版はclaude-sonnet-4-20250514を使用していたが、当該モデルはAPI提供終了済み
+// （404 not_found_error）のため、現行世代の同位置（Sonnet）モデルに置き換えている。
+const CLAUDE_MODEL = 'claude-sonnet-4-6';
 
 async function callClaude(systemPrompt, userMessage, options = {}) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
