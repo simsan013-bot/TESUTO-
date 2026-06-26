@@ -125,6 +125,57 @@ function callFishAudioTts_(payload) {
   );
 }
 
+// 「キャラ別台本」工程（character-script-app）が同じスプシ（圧縮_出力ID）に
+// 書き出す「生成Doc一覧」タブ（ファイル名|キャラクター|Doc ID|Doc URL|...）
+// からDoc ID列を読み取り、音声工程のdocIdsとして使う。
+function readGeneratedDocIds_(spreadsheetId) {
+  var ss = SpreadsheetApp.openById(spreadsheetId);
+  var sheet = ss.getSheetByName('生成Doc一覧');
+  if (!sheet) return [];
+  var rows = sheet.getDataRange().getValues();
+  var docIds = [];
+  for (var i = 1; i < rows.length; i++) {
+    var docId = String(rows[i][2] || '').trim();
+    if (docId) docIds.push(docId);
+  }
+  return docIds;
+}
+
+// fish-audio-ttsは1回のdoPostでDoc1件しか処理しない設計（GASの6分実行上限対策、
+// apps/fish-audio-tts/README.md参照）。「圧縮」工程のrunCompressionStage_と同じ
+// 「1工程内で連結」パターンで、allDone:trueになるまでcallFishAudioTts_を
+// ループ呼び出しし、ログ・保存ファイルを集約した1つの結果として返す。
+// 進行が無いまま（nextIdxが進まない）応答が返った場合は、リトライしても
+// 解決しない設定エラー（APIキー未設定・シート不正等）と判断して打ち切る。
+function runFishAudioStage_(payload) {
+  var logs = [];
+  var savedFiles = [];
+  var currentIdx = 0;
+  var maxIterations = (payload.docIds || []).length + 5;
+
+  for (var i = 0; i < maxIterations; i++) {
+    var result = callFishAudioTts_({
+      sheetId: payload.sheetId,
+      sheetName: payload.sheetName,
+      docIds: payload.docIds,
+      outputFolder: payload.outputFolder,
+      generateSrt: payload.generateSrt,
+      currentIdx: currentIdx
+    });
+    logs = logs.concat(result.logs || []);
+    savedFiles = savedFiles.concat(result.savedFiles || []);
+
+    if (result.allDone) {
+      return { ok: true, allDone: true, logs: logs, savedFiles: savedFiles };
+    }
+    if (result.nextIdx === undefined || result.nextIdx <= currentIdx) {
+      return { ok: false, error: result.error || '音声生成が進行しませんでした（currentIdx=' + currentIdx + '）', logs: logs, savedFiles: savedFiles };
+    }
+    currentIdx = result.nextIdx;
+  }
+  return { ok: false, error: '音声生成がmaxIterations(' + maxIterations + ')を超えました', logs: logs, savedFiles: savedFiles };
+}
+
 function callPrpGenerator_(payload) {
   return httpPostJson_(
     getRequiredProp_(CONFIG_KEYS.PRP_APP_URL),
@@ -145,4 +196,12 @@ function callImageGenApp_(payload) {
 function runImageStage_(payload) {
   var prpResult = callPrpGenerator_(payload);
   return callImageGenApp_(prpResult);
+}
+
+function callCatCommentaryApp_(payload) {
+  return httpPostJson_(
+    getRequiredProp_(CONFIG_KEYS.CAT_COMMENTARY_APP_URL),
+    getOptionalProp_(CONFIG_KEYS.CAT_COMMENTARY_APP_KEY),
+    { scenario: payload.scenario }
+  );
 }

@@ -102,7 +102,11 @@ function runCheckOrDirector_(workId, processName, row, result) {
 // （apps/producer/StageOutput.gs参照）。「圧縮」はそのDocを読んでscript/designを
 // 組み立て、出力先folderId/fileNameも渡す（実体スプシはrunCompressionStage_が
 // 作成し、そのIDを次の「キャラ別台本」がspreadsheetIdとして受け取る）。
-// それ以外はまだ未接続のため、従来通りキュー行の値のみを渡す暫定payload。
+// 「音声」はキャラ別台本工程が同じスプシに書き込んだ「キャラ一覧」タブ・
+// 「生成Doc一覧」タブをそのまま読んで渡す（apps/fish-audio-tts/README.md
+// 「producer連携」参照）。「猫感想」は圧縮工程と同じアナリストFB修正後Docの
+// steps結合文をシナリオ本文として渡す。それ以外はまだ未接続のため、
+// 従来通りキュー行の値のみを渡す暫定payload。
 function buildStagePayload_(workId, row, processName) {
   if (processName === 'シナリオ') {
     return { title: row['タイトル'], refScenario: row['参考シナリオ'] };
@@ -127,6 +131,26 @@ function buildStagePayload_(workId, row, processName) {
     // mode:'extract'を呼ぶとタブ2のvoice_idが消えるため、'run'のみで良い
     // （apps/character-script-app/WebApi.gs参照）。
     return { mode: 'run', spreadsheetId: row['圧縮_出力ID'] };
+  }
+  if (processName === '音声') {
+    // キャラ別台本工程が同じスプシ（圧縮_出力ID）に書き込んだ
+    // タブ2「キャラ一覧」（sheetId/sheetName）と「生成Doc一覧」タブの
+    // Doc ID列（docIds）をfish-audio-ttsの入力としてそのまま渡す
+    // （apps/producer/ExternalApps.gsのreadGeneratedDocIds_参照）。
+    var voiceSheetId = row['圧縮_出力ID'];
+    return {
+      sheetId: voiceSheetId,
+      sheetName: 'キャラ一覧',
+      docIds: readGeneratedDocIds_(voiceSheetId),
+      outputFolder: 'No' + workId + '_音声',
+      generateSrt: true
+    };
+  }
+  if (processName === '猫感想') {
+    // 圧縮工程が読む元データと同じ（アナリストFB修正後Doc）のsteps結合文を
+    // シナリオ本文としてそのまま渡す。
+    var catFeedbackOutput = parseStepsDocText_(loadDocText_(row['アナリストFB_出力ID']));
+    return { scenario: catFeedbackOutput.steps.join('\n\n') };
   }
   return {
     workId: workId,

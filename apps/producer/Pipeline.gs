@@ -18,7 +18,8 @@ var PIPELINE_EXECUTORS = {
   'アナリストFB': callAnalystFeedbackApp_,
   '圧縮': runCompressionStage_,
   'キャラ別台本': callCharacterScriptApp_,
-  '音声': callFishAudioTts_,
+  '音声': runFishAudioStage_,
+  '猫感想': callCatCommentaryApp_,
   '画像': runImageStage_
 };
 

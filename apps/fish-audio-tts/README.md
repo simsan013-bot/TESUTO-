@@ -101,35 +101,23 @@ index.html     対話型UI（無改修。doGetが小文字'index'を参照する
 { "ok": false, "error": "..." }
 ```
 
-## 既知の未解決事項
+## producer連携（解消済み）
 
-1. **producerから複数回呼び出す仕組みが未実装**
+以前は、(1) producerから複数回呼び出す仕組みが無い、(2) producerからの入力
+（`sheetId`/`sheetName`/`docIds`/`outputFolder`）の受け渡し経路が未設計、
+という2点が未解決だった。
 
-   上述のとおり、この App は1回の`doPost`でDoc 1件しか処理しない。元のUIは
-   ブラウザ側JSの再帰呼び出しでこれを吸収していたが、producer側
-   （`apps/producer/Pipeline.gs`の`PIPELINE_EXECUTORS['音声'] = callFishAudioTts_`）の
-   `startProcess_`は現状、各工程の実行関数を**1回だけ**呼んで`CHECKING`状態に
-   遷移させる設計になっている（`apps/producer/Code.gs`）。そのため、producerが
-   この App を呼んでも最初の1Docしか処理されず、`nextIdx`を使って残りのDocを
-   処理し続ける仕組みは未実装。
+`apps/producer/ExternalApps.gs`に`runFishAudioStage_`（「圧縮」工程の
+`runCompressionStage_`と同じ「1工程内で連結」パターン）を追加し、
+`PIPELINE_EXECUTORS['音声']`をこれに変更した。`runFishAudioStage_`は
+`callFishAudioTts_`を`allDone:true`になるまでループ呼び出しし、各回の
+`logs`/`savedFiles`を集約して1つの結果として返す（`nextIdx`が進まない
+応答が返った場合は、リトライしても解決しない設定エラーと判断して打ち切る）。
 
-2. **producerからの入力（`sheetId`/`sheetName`/`docIds`/`outputFolder`）の
-   受け渡し経路が未設計**
-
-   `startProcess_`が各executorに渡すpayloadは現状
-   `{ workId, title, refScenario, channelId, folderId }`の固定形であり、
-   この App が要求する音声モデル設定シートのID・タブ名・対象Doc ID配列は
-   含まれていない。`apps/character-script-app/README.md`に記載の
-   `圧縮`→`キャラ別台本`間のspreadsheetId連携未設計と同種の課題であり、
-   `キャラ別台本`（`generateModelDocs`が生成するDoc群）の出力を、この App の
-   `docIds`としてどう受け渡すかも合わせて今後の設計課題。
-
-3. **音声モデル設定シートの形式は`character-script-app`の「キャラ一覧」タブと
-   互換性がある（未接続）**
-
-   この App の`generateAudio`は列B＝キャラ名（`【】`除去）、列C＝voice_idの
-   シートを読む。`character-script-app`の「キャラ一覧」タブ（タグ＝A、
-   キャラ名＝B、voice_id＝C、speed＝D、emotion_tag＝E）と列レイアウトが
-   一致するため、同じスプレッドシートをそのまま`sheetId`/`sheetName`として
-   渡せる可能性があるが、実際にどの工程の出力からこのシートIDを得るかは
-   上記2.の解消と合わせて今後の設計課題（まだ接続・実装していない）。
+入力の受け渡しは、`apps/producer/Code.gs`の`buildStagePayload_`の`音声`分岐が
+担う。音声モデル設定シートの列レイアウトが`character-script-app`の
+「キャラ一覧」タブと互換であることを利用し、`圧縮_出力ID`（キャラ別台本工程が
+書き込んだスプシのID）をそのまま`sheetId`に、`sheetName`は`'キャラ一覧'`を
+渡す。`docIds`は同じスプシの「生成Doc一覧」タブ（`character-script-app`の
+`generateModelDocs`が書き出す）のDoc ID列を`readGeneratedDocIds_`
+（`apps/producer/ExternalApps.gs`）で読み取って渡す。

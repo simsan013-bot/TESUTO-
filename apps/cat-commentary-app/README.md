@@ -8,9 +8,7 @@ GASプロジェクトとしてそのままリポジトリに取り込んだも�
 プロンプト・ロジックは既存App側のまま変更していない（`SYSTEM_PROMPT`・
 `callClaude`・`saveHistory`等は元のコードと同一）。
 
-`docs/instruction.md`の パイプライン上の`猫感想`工程に対応するが、現時点では
-`apps/producer`からは未接続（Gap 2、動画作成の主要フロー（アナリストFB／
-編集・サムネ・投稿／チェッカー・ディレクター）を先に固めてから接続する方針のため）。
+`docs/instruction.md`の パイプライン上の`猫感想`工程に対応する。
 
 ## ファイル構成
 
@@ -33,17 +31,29 @@ clasp push
 |---|---|
 | `CLAUDE_API_KEY` | AnthropicのAPIキー（必須） |
 | `SHEET_ID` | 生成履歴を保存するスプレッドシートのID（省略可。未設定なら履歴保存をスキップ） |
+| `PRODUCER_SHARED_KEY` | producer専用の合言葉。producer側の`CAT_COMMENTARY_APP_KEY`と**同じ値**にすること。未設定の場合、producerからの呼び出しはすべて拒否される |
+
+Webアプリとしてデプロイ後、デプロイURLをproducer側のScript Propertiesに設定する。
+```js
+setScriptProperties({
+  CAT_COMMENTARY_APP_URL: '...',
+  CAT_COMMENTARY_APP_KEY: '...'   // 上記PRODUCER_SHARED_KEYと同じ値
+});
+```
 
 ## 入出力
 
-- 人間用UI：WebAppのURLを開き、シナリオ本文を貼り付けて「猫に喋らせる」を押す。
-- 外部からの呼び出し（Make/n8n等）：`doPost`に`{ "scenario": "シナリオ本文" }`をJSONで送ると
-  `{ "success": true, "output": "猫のコメント" }`（またはエラー時`{ "success": false, "error": "..." }`）を返す。
+- 人間用UI：WebAppのURLを開き、シナリオ本文を貼り付けて「猫に喋らせる」を押す
+  （ブラウザは`google.script.run`経由で`handlePost()`を直接呼ぶため、`doPost`は経由しない）。
+- producerからの呼び出し：`doPost`に`{ "scenario": "シナリオ本文", "secret": "..." }`を
+  JSONで送ると`{ "ok": true, "output": "猫のコメント" }`
+  （またはエラー時`{ "ok": false, "error": "..." }`）を返す。
 
-## producer連携（未接続・将来の接続候補）
+## producer連携（解消済み）
 
-`apps/producer`から呼び出す場合は、他App（`apps/analyst-feedback-app`等）と同様に
-`doPost`に`secret`（合言葉）を含めて呼ぶ運用に揃える必要がある。現状の`doPost`には
-合言葉チェックが無いため、接続する際は`verifyProducerSecret_`相当のチェックを
-追加する必要がある（既存の人間用UI経由の呼び出しを壊さないよう、`mode`や`secret`の
-有無で人間用/producer用を分岐する設計が必要になる）。
+`doPost`に`verifyProducerSecret_`（合言葉チェック）を追加した。ブラウザの
+`index.html`は`doPost`を経由せず`handlePost()`を直接呼ぶ設計のため、この
+チェック追加は人間用UIの挙動に影響しない。`apps/producer/ExternalApps.gs`に
+`callCatCommentaryApp_`を追加し、`PIPELINE_EXECUTORS['猫感想']`に登録した。
+`apps/producer/Code.gs`の`buildStagePayload_`は、圧縮工程が読むのと同じ
+アナリストFB修正後Doc（`アナリストFB_出力ID`）のsteps結合文を`scenario`として渡す。

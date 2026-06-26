@@ -17,28 +17,45 @@ function doGet(e) {
 }
 
 // ============================================================
-//  POST: AJAX（画面から）または Make/n8n からの呼び出しに対応
-//  リクエストボディ JSON: { "scenario": "シナリオ本文" }
-//  レスポンス JSON:       { "success": true, "output": "猫のコメント" }
-//                    or  { "success": false, "error": "エラーメッセージ" }
+//  POST: producer（合言葉必須）からの呼び出しに対応
+//  リクエストボディ JSON: { "scenario": "シナリオ本文", "secret": "..." }
+//  レスポンス JSON:       { "ok": true, "output": "猫のコメント" }
+//                    or  { "ok": false, "error": "エラーメッセージ" }
+//
+//  ブラウザの index.html はgoogle.script.run経由でhandlePost()を直接呼ぶため
+//  （doPostは経由しない）、ここに合言葉チェックを追加しても人間用UIには
+//  影響しない。
 // ============================================================
 function doPost(e) {
   try {
     var body = JSON.parse(e.postData.contents);
+
+    if (!verifyProducerSecret_(body)) {
+      return buildJson({ ok: false, error: '認証エラー: secret が一致しません。' });
+    }
+
     var scenario = body.scenario || '';
 
     if (!scenario.trim()) {
-      return buildJson({ success: false, error: 'シナリオが空やで' });
+      return buildJson({ ok: false, error: 'シナリオが空やで' });
     }
 
     var output = callClaude(scenario);
     saveHistory(scenario, output);
 
-    return buildJson({ success: true, output: output });
+    return buildJson({ ok: true, output: output });
 
   } catch (err) {
-    return buildJson({ success: false, error: err.message });
+    return buildJson({ ok: false, error: err.message });
   }
+}
+
+// producerからの呼び出しを確認するための合言葉チェック。
+// 未設定の場合は常に拒否する（安全側のデフォルト）。
+function verifyProducerSecret_(body) {
+  var expected = PropertiesService.getScriptProperties().getProperty('PRODUCER_SHARED_KEY');
+  if (!expected) return false;
+  return !!body && body.secret === expected;
 }
 
 // ============================================================
