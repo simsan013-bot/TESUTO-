@@ -38,7 +38,10 @@ async function callClaude(systemPrompt, userMessage, options = {}) {
       if (attempt >= retry.maxRetry) {
         throw new Error('レート制限が続いています。しばらく時間をおいてから再試行してください。');
       }
-      await new Promise((r) => setTimeout(r, retry.retryWaitSec * 1000));
+      const waitSec = typeof retry.retryWaitSec === 'function'
+        ? retry.retryWaitSec(attempt + 1)
+        : retry.retryWaitSec;
+      await new Promise((r) => setTimeout(r, waitSec * 1000));
       continue;
     }
 
