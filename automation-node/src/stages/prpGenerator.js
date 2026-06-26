@@ -22,16 +22,20 @@ function callClaudeWithSceneRetry(systemPrompt, userMessage) {
   });
 }
 
-// parseCharacterBlocks_と同一ロジック
+// parseCharacterBlocks_と同一ロジック。GAS版は「=== CHAR:」にマッチしない
+// ブロック（モデルが本文の前に付ける見出し等）にも'キャラクター N'という
+// ダミー名でフォールバックしていたが、これはモデルの出力揺れにより本文以外の
+// テキストが偽キャラクターとして混入するバグだったため、マッチしないブロックは
+// 読み飛ばすように修正（実在するキャラクターブロックの抽出結果は変わらない）。
 function parseCharacterBlocks(text) {
   const blocks = text.split(/(?==== CHAR:)/);
   const result = [];
   for (const blk of blocks) {
     if (!blk.trim()) continue;
     const m = blk.match(/=== CHAR:([^\n]+)===/);
-    const name = m ? m[1].trim() : 'キャラクター ' + (result.length + 1);
+    if (!m) continue;
     const content = blk.replace(/---END---/g, '').trim();
-    result.push({ name, content });
+    result.push({ name: m[1].trim(), content });
   }
   return result;
 }
