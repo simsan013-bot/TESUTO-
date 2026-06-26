@@ -170,6 +170,15 @@ async function buildCharacterScriptExport(fullScript, characterRoles) {
   return { characterRoles, scriptRows, voiceRows };
 }
 
+// runCompressionStage_のNode版。テキスト生成（mode:'run'相当）に続けて、
+// キャラ別台本工程が必要とするタブ1/タブ2形式の行データ（mode:'export'相当）を
+// 同じ呼び出し内で生成する。runImageStage_と同じ「1工程内で2段呼び出しをまとめる」パターン。
+async function runCompressionStage(script, chars, design) {
+  const pipelineResult = await runCompressionPipeline(script, chars, design);
+  const exportResult = await buildCharacterScriptExport(pipelineResult.script);
+  return { ...pipelineResult, ...exportResult };
+}
+
 module.exports = {
   runCompressionPipeline,
   countChars,
@@ -177,5 +186,6 @@ module.exports = {
   detectCharacterRoles,
   selectVoiceModels,
   buildCharacterScriptExport,
+  runCompressionStage,
   VOICE_MODEL_LIST,
 };

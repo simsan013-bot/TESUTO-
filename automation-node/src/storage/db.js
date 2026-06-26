@@ -5,7 +5,7 @@
 const path = require('path');
 const fs = require('fs');
 const Database = require('better-sqlite3');
-const { PIPELINE_EXECUTION_ORDER } = require('../pipeline');
+const { PIPELINE_EXECUTION_ORDER, getNextProcessName } = require('../pipeline');
 
 const QUEUE_STATUS = {
   WAITING: '待機',
@@ -197,8 +197,21 @@ function listGateWaitingItems(db) {
     .all(QUEUE_STATUS.GATE_WAIT);
 }
 
+// advanceToNextProcessAfterGate_と同一ロジック（次工程が無ければ完了、あれば次工程を待機状態にする）
+function advanceToNextProcess(db, workId, processName) {
+  const next = getNextProcessName(processName);
+  if (!next) {
+    updateOverallStatus(db, workId, QUEUE_STATUS.DONE, processName, 'なし');
+    return;
+  }
+  updateOverallStatus(db, workId, QUEUE_STATUS.WAITING, next, 'なし');
+}
+
+// clearGate(workId)と同一ロジック。ゲート時点のcurrent_process（直前に完了した工程）を
+// 読み、その次の工程へ進める。
 function clearGate(db, workId) {
-  updateOverallStatus(db, workId, QUEUE_STATUS.WAITING, null, 'なし');
+  const work = getWork(db, workId);
+  advanceToNextProcess(db, workId, work.current_process);
 }
 
 module.exports = {
@@ -213,6 +226,7 @@ module.exports = {
   incrementRetryCount,
   resetRetryCount,
   escalateToSimGate,
+  advanceToNextProcess,
   listActionableWorkIds,
   appendNgLogEntry,
   getRecentNgLogForWorkId,

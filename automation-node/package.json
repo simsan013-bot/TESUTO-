@@ -4,9 +4,9 @@
   "private": true,
   "description": "GAS版apps/と同じ成果物を出すNode.js自動化パイプライン（詳細はdocs/automation-node-plan.md参照）",
   "type": "commonjs",
-  "main": "src/pipeline.js",
+  "main": "src/producerTick.js",
   "scripts": {
-    "tick": "node src/pipeline.js"
+    "tick": "node src/cli/tick.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.0.0"
