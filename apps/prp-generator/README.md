@@ -36,6 +36,18 @@ APIキーはlocalStorage保存）だった。プロンプト文面・分割ル�
 GASのWebApp実行は最大6分のため、`totalScenes` が大きい場合は必ず `batchIndex` を
 指定して producer 側でバッチごとに呼び出すこと。
 
+## producer連携（解消済み）
+
+`apps/producer/ExternalApps.gs`の`runImageStage_`が、`character`モードへは
+アナリストFB修正後Docの`design`（【登場人物設計】を含む）をそのまま渡し、
+`scene`モードへは`batchIndex`を0から進めながら`batch.endScene >= totalScenes`
+になるまでループ呼び出しする（`generateAllScenePromptsInBatches_`）。
+`totalScenes`はproducer側で台本の文字数から概算する
+（`estimateTotalScenes_`、上限150）。生成された`rows`はキャラクター用は
+画像生成Appの参照画像登録に、シーン用はそのまま画像生成Appの`generate`
+モードに（`[[名前]]`をワーク単位ラベルに置換した上で）渡す
+（`apps/image-generator/README.md`「producer連携」参照）。
+
 ## セットアップ
 1. `clasp create --type webapp --title "prp-generator"`
 2. `clasp push`

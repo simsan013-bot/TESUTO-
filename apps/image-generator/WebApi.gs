@@ -8,14 +8,14 @@
 // （= このスクリプトが紐付くスプレッドシート）を参照するため、
 // 生成ロジック・プロンプト・モデルIDは一切変更していない。
 //
-// 【doPostの入力】
+// 【doPostの入力（mode: 'generate'）】
 //   {
 //     mode: 'generate',
 //     rows: ['プロンプト1', 'プロンプト2', ...],  // PRP生成Appのrows出力をそのまま渡せる
 //     folderId: 'Drive保存先フォルダID（省略時はDRIVE_FOLDER_IDスクリプトプロパティ）'
 //   }
 //
-// 【doPostの出力】
+// 【doPostの出力（mode: 'generate'）】
 //   {
 //     ok: true,
 //     results: [
@@ -23,6 +23,19 @@
 //       ...
 //     ]
 //   }
+//
+// 【doPostの入力（mode: 'registerRef'）】
+//   人間が参照画像シートに手動でラベル/URLを書く操作のAPI版。
+//   このAppはコンテナバインドのため参照画像シートは全ワーク共通の1枚。
+//   呼び出し側（producer）でワーク単位のラベル（例：No12_岡本）を
+//   付けて渡すことで、ワーク間のラベル衝突を避ける想定。
+//   {
+//     mode: 'registerRef',
+//     refs: [ { label: 'No12_岡本', url: 'https://drive.google.com/...', memo: '...' }, ... ]
+//   }
+//
+// 【doPostの出力（mode: 'registerRef'）】
+//   { ok: true, registered: 件数 }
 // ============================================================
 function doPost(e) {
   var body = JSON.parse(e.postData.contents);
@@ -37,7 +50,11 @@ function doPost(e) {
     return jsonResponse_(generateImagesForApi_(body));
   }
 
-  return jsonResponse_({ ok: false, error: 'mode は "generate" を指定してください。' });
+  if (mode === 'registerRef') {
+    return jsonResponse_(registerRefImagesForApi_(body));
+  }
+
+  return jsonResponse_({ ok: false, error: 'mode は "generate" または "registerRef" を指定してください。' });
 }
 
 function doGet(e) {
@@ -95,6 +112,25 @@ function generateImagesForApi_(body) {
   }
 
   return { ok: true, results: results };
+}
+
+// ============================================================
+// 参照画像シートにラベル→URLを登録する（registerRefImage_本体はRefImages.gs）。
+// ============================================================
+function registerRefImagesForApi_(body) {
+  var refs = body.refs;
+  if (!refs || refs.length === 0) {
+    return { ok: false, error: 'refs が空です。' };
+  }
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  for (var i = 0; i < refs.length; i++) {
+    var ref = refs[i];
+    if (!ref || !ref.label || !ref.url) continue;
+    registerRefImage_(ss, ref.label, ref.url, ref.memo);
+  }
+
+  return { ok: true, registered: refs.length };
 }
 
 function jsonResponse_(obj) {

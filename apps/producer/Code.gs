@@ -105,8 +105,11 @@ function runCheckOrDirector_(workId, processName, row, result) {
 // 「音声」はキャラ別台本工程が同じスプシに書き込んだ「キャラ一覧」タブ・
 // 「生成Doc一覧」タブをそのまま読んで渡す（apps/fish-audio-tts/README.md
 // 「producer連携」参照）。「猫感想」は圧縮工程と同じアナリストFB修正後Docの
-// steps結合文をシナリオ本文として渡す。それ以外はまだ未接続のため、
-// 従来通りキュー行の値のみを渡す暫定payload。
+// steps結合文をシナリオ本文として渡す。「画像」はアナリストFB修正後Docの
+// design（登場人物設計）と、圧縮工程が出力したスプシのタブ1台本を読み戻した
+// 本文の両方を渡す（apps/producer/ExternalApps.gsのrunImageStage_参照）。
+// それ以外（編集/サムネ）はまだ未接続のため、従来通りキュー行の値のみを
+// 渡す暫定payload。
 function buildStagePayload_(workId, row, processName) {
   if (processName === 'シナリオ') {
     return { title: row['タイトル'], refScenario: row['参考シナリオ'] };
@@ -152,6 +155,18 @@ function buildStagePayload_(workId, row, processName) {
     var catFeedbackOutput = parseStepsDocText_(loadDocText_(row['アナリストFB_出力ID']));
     return { scenario: catFeedbackOutput.steps.join('\n\n') };
   }
+  if (processName === '画像') {
+    // キャラクター生成用にはアナリストFB修正後Docのdesign（【登場人物設計】を含む）を、
+    // シーン生成用には圧縮工程が出力したスプシ（タブ1台本）を読み戻した本文を渡す
+    // （apps/producer/ExternalApps.gsのrunImageStage_/readCompressedScriptText_参照）。
+    var imgFeedbackOutput = parseStepsDocText_(loadDocText_(row['アナリストFB_出力ID']));
+    return {
+      workId: workId,
+      design: imgFeedbackOutput.design,
+      script: readCompressedScriptText_(row['圧縮_出力ID']),
+      folderId: row['フォルダID']
+    };
+  }
   return {
     workId: workId,
     title: row['タイトル'],
@@ -175,6 +190,9 @@ function saveStageResult_(workId, row, processName, result) {
   }
   if (processName === '圧縮') {
     return result.spreadsheetId;
+  }
+  if (processName === '画像') {
+    return (result.results || []).length + '枚生成（キャラ' + (result.characterCount || 0) + '・シーン' + (result.totalScenes || 0) + '）';
   }
   return result.outputId;
 }

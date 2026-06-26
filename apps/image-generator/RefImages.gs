@@ -92,6 +92,30 @@ function getRefImageUrl(ss, labelOrUrl) {
 }
 
 // ============================================================
+// ▼ 参照画像シートにラベル→URLを登録（既存ラベルは上書き、無ければ追加）
+//   producerからの自動登録用（人間が手動でシートに書く操作と同じ結果）
+// ============================================================
+function registerRefImage_(ss, label, url, memo) {
+  var sheet = ss.getSheetByName(SHEET.REF);
+  if (!sheet) {
+    sheet = ss.insertSheet(SHEET.REF);
+    sheet.getRange(1, 1, 1, 3).setValues([['ラベル名', 'Drive URL', '用途メモ']]);
+  }
+  var lastRow = sheet.getLastRow();
+  if (lastRow >= 2) {
+    var values = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    for (var i = 0; i < values.length; i++) {
+      if (values[i][0].toString().trim() === label) {
+        sheet.getRange(i + 2, REF_COL.URL).setValue(url);
+        sheet.getRange(i + 2, REF_COL.MEMO).setValue(memo || '');
+        return;
+      }
+    }
+  }
+  sheet.appendRow([label, url, memo || '']);
+}
+
+// ============================================================
 // ▼ Drive URLから画像をbase64で取得
 //
 // 対応URL形式：

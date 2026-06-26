@@ -66,9 +66,10 @@ WebApi.gs           doPost/doGet（producerからのHTTP呼び出し用、新規
 
 ## doPost の入出力契約
 
-producer の `callImageGenApp_`（`apps/producer/ExternalApps.gs`）は
-PRP生成Appの出力（`{ rows: [...] }`）をそのままこのAppに渡す
-（`runImageStage_`）。
+### mode: "generate"
+
+producer の `runImageStage_`（`apps/producer/ExternalApps.gs`）が
+PRP生成Appのキャラクター用／シーン用プロンプトをそれぞれこのモードで渡す。
 
 リクエスト：
 ```json
@@ -88,3 +89,41 @@ PRP生成Appの出力（`{ rows: [...] }`）をそのままこのAppに渡す
   ]
 }
 ```
+
+### mode: "registerRef"（producer連携で新規追加）
+
+人間が参照画像シート（`参照画像`タブ、A=ラベル名/B=Drive URL/C=用途メモ）に
+手動でラベルとURLを書く操作のAPI版（`registerRefImage_`、`RefImages.gs`）。
+このAppはコンテナバインドのため参照画像シートは全ワーク共通の1枚しかない。
+producer側はワーク単位のラベル（例：`No12_岡本`）を付けて渡すことで、
+ワーク間のラベル衝突を避ける（後述「producer連携」参照）。
+
+リクエスト：
+```json
+{
+  "mode": "registerRef",
+  "refs": [
+    { "label": "No12_岡本", "url": "https://drive.google.com/...", "memo": "（省略可）" }
+  ]
+}
+```
+
+レスポンス：
+```json
+{ "ok": true, "registered": 1 }
+```
+
+## producer連携（解消済み）
+
+以前は「画像」工程のexecutor（`runImageStage_`）がPRP生成Appの出力を
+そのままこのAppに渡すだけで、登場人物設計から参照画像を作って登録する手順
+（従来は人間が手作業で行っていた）が未実装だった。
+
+`apps/producer/ExternalApps.gs`の`runImageStage_`を書き換え、PRP生成Appの
+`character`モードでキャラクター別プロンプトを生成→各キャラの正面プロンプトを
+このAppの`generate`モードで1枚ずつ画像化→生成したURLをこのAppの新しい
+`registerRef`モードでワーク単位ラベル（`No{作品No}_名前`）として登録、という
+手順を1工程内で連結している。シーン用プロンプト（PRP生成Appの`scene`モード）
+が出力する`[[名前]]`参照は、producer側で`[[No{作品No}_名前]]`に文字列置換
+してからこのAppの`generate`モードに渡すため、画像生成App自身のロジック・
+プロンプトは無改修のまま、ワークをまたいだラベル衝突を避けられる。
