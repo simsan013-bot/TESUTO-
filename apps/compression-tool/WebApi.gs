@@ -10,23 +10,25 @@
 // サーバー側から同じ順序で呼び出すmode='run'のdoPostを追加した。
 // プロンプト文面・生成順序は一切変更していない。
 //
+// mode:'export'は、producerのキャラ別台本工程が必要とするタブ1（台本）/
+// タブ2（作品No音声モデル）形式のスプシをfolderId直接指定で出力する
+// （Code.gsのexportForProducer_参照）。元のexportToSpreadsheet（人間用・
+// 管理表MGMT_SHEET経由）とはfolderIdの取得方法が異なるだけで、スプシ生成
+// ロジック・voice_id選定プロンプトは完全に共通。
+//
 // 【doPostの入力】
-//   {
-//     mode: 'run',
-//     script: '元のシナリオ本文',
+//   { mode: 'run', script: '元のシナリオ本文',
 //     chars: 'キャラクター設定（任意・省略可）',
-//     design: 'シナリオ設計書（任意・省略時は元シナリオからSTORY_BIBLEを抽出）'
-//   }
+//     design: 'シナリオ設計書（任意・省略時は元シナリオからSTORY_BIBLEを抽出）' }
+//   { mode: 'export', script: 'スプシ化する台本本文（mode:runのscript結果など）',
+//     folderId: '出力先DriveフォルダID', fileName: '作成するスプシ名',
+//     characterRoles: '（任意・省略時はdetectCharacterRolesで自動判定）' }
 //
 // 【doPostの出力】
-//   {
-//     ok: true,
-//     storyBible: '抽出されたSTORY_BIBLE',
-//     digest, ki, sho, ten, ketsu: '各フェーズの生成テキスト',
-//     script: '①〜⑤結合済みの台本本文',
-//     charCounts: { digest, ki, sho, ten, ketsu の純セリフ文字数 },
-//     totalChars: '純セリフ合計文字数'
-//   }
+//   mode:'run'    → { ok: true, storyBible, digest, ki, sho, ten, ketsu,
+//                      script: '①〜⑤結合済みの台本本文',
+//                      charCounts: {...}, totalChars: '純セリフ合計文字数' }
+//   mode:'export' → { ok: true, spreadsheetId: '...', spreadsheetUrl: '...' }
 // ============================================================
 
 function doPost(e) {
@@ -41,8 +43,33 @@ function doPost(e) {
   if (mode === 'run') {
     return jsonResponse_(runCompressionPipeline_(body));
   }
+  if (mode === 'export') {
+    return jsonResponse_(runExport_(body));
+  }
 
-  return jsonResponse_({ ok: false, error: 'mode は "run" を指定してください。' });
+  return jsonResponse_({ ok: false, error: 'mode は "run" または "export" を指定してください。' });
+}
+
+function runExport_(body) {
+  var script   = (body.script   || '').toString().trim();
+  var folderId = (body.folderId || '').toString().trim();
+  var fileName = (body.fileName || '').toString().trim();
+  if (!script)   return { ok: false, error: 'script が空です。' };
+  if (!folderId) return { ok: false, error: 'folderId が空です。' };
+  if (!fileName) return { ok: false, error: 'fileName が空です。' };
+
+  try {
+    var result = exportForProducer_({
+      fullScript: script,
+      folderId: folderId,
+      fileName: fileName,
+      characterRoles: body.characterRoles
+    });
+    if (!result.success) return { ok: false, error: result.error };
+    return { ok: true, spreadsheetId: result.ssId, spreadsheetUrl: result.ssUrl };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
 }
 
 // producerからの呼び出しを確認するための合言葉チェック。

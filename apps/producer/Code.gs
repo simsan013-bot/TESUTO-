@@ -98,9 +98,11 @@ function runCheckOrDirector_(workId, processName, row, result) {
 }
 
 // 工程ごとに必要な入力を組み立てる。
-// 「シナリオ」「アナリストFB」「圧縮」はDoc経由でtitle/design/stepsを受け渡す
-// （apps/producer/StageOutput.gs参照）。それ以外はまだ未接続のため、
-// 従来通りキュー行の値のみを渡す暫定payload。
+// 「シナリオ」「アナリストFB」はDoc経由でtitle/design/stepsを受け渡す
+// （apps/producer/StageOutput.gs参照）。「圧縮」はそのDocを読んでscript/designを
+// 組み立て、出力先folderId/fileNameも渡す（実体スプシはrunCompressionStage_が
+// 作成し、そのIDを次の「キャラ別台本」がspreadsheetIdとして受け取る）。
+// それ以外はまだ未接続のため、従来通りキュー行の値のみを渡す暫定payload。
 function buildStagePayload_(workId, row, processName) {
   if (processName === 'シナリオ') {
     return { title: row['タイトル'], refScenario: row['参考シナリオ'] };
@@ -111,7 +113,20 @@ function buildStagePayload_(workId, row, processName) {
   }
   if (processName === '圧縮') {
     var feedbackOutput = parseStepsDocText_(loadDocText_(row['アナリストFB_出力ID']));
-    return { script: feedbackOutput.steps.join('\n\n'), design: feedbackOutput.design, chars: '' };
+    return {
+      script: feedbackOutput.steps.join('\n\n'),
+      design: feedbackOutput.design,
+      chars: '',
+      folderId: row['フォルダID'],
+      fileName: 'No' + workId + '_台本'
+    };
+  }
+  if (processName === 'キャラ別台本') {
+    // 圧縮工程が出力したスプシ（タブ1=台本／タブ2=作品No音声モデル、
+    // voice_idはexportForProducer_内で選定済み）をそのまま渡す。
+    // mode:'extract'を呼ぶとタブ2のvoice_idが消えるため、'run'のみで良い
+    // （apps/character-script-app/WebApi.gs参照）。
+    return { mode: 'run', spreadsheetId: row['圧縮_出力ID'] };
   }
   return {
     workId: workId,
@@ -133,6 +148,9 @@ function saveStageResult_(workId, row, processName, result) {
     var docText = buildStepsDocText_(result.title, result.design, result.steps);
     var fileName = 'No' + workId + '_' + processName + (processName === 'アナリストFB' ? '_修正版' : '');
     return saveTextAsDoc_(row['フォルダID'], fileName, docText);
+  }
+  if (processName === '圧縮') {
+    return result.spreadsheetId;
   }
   return result.outputId;
 }

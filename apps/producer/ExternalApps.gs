@@ -64,6 +64,40 @@ function callCompressionTool_(payload) {
   );
 }
 
+function callCompressionExport_(payload) {
+  return httpPostJson_(
+    getRequiredProp_(CONFIG_KEYS.COMPRESSION_APP_URL),
+    getOptionalProp_(CONFIG_KEYS.COMPRESSION_APP_KEY),
+    {
+      mode: 'export',
+      script: payload.script,
+      folderId: payload.folderId,
+      fileName: payload.fileName
+    }
+  );
+}
+
+// 「圧縮」工程の実行関数。テキスト生成（mode:'run'）に続けて、
+// キャラ別台本工程が必要とするタブ1/タブ2形式のスプシをfolderId直接
+// 指定で出力する（mode:'export'）。runImageStage_と同じ「1工程内で
+// 2段呼び出しをまとめる」パターン。
+function runCompressionStage_(payload) {
+  var genResult = callCompressionTool_(payload);
+  if (!genResult || genResult.ok === false) {
+    return genResult;
+  }
+  var exportResult = callCompressionExport_({
+    script: genResult.script,
+    folderId: payload.folderId,
+    fileName: payload.fileName
+  });
+  if (!exportResult || exportResult.ok === false) {
+    return { ok: false, error: '圧縮スプシ出力エラー: ' + (exportResult && exportResult.error) };
+  }
+  genResult.spreadsheetId = exportResult.spreadsheetId;
+  return genResult;
+}
+
 function callCharacterScriptApp_(payload) {
   return httpPostJson_(
     getRequiredProp_(CONFIG_KEYS.CHARACTER_SCRIPT_APP_URL),

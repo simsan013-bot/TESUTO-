@@ -164,41 +164,12 @@ function selectVoiceModels(characterRoles, fullScript) {
   }
 }
 
-function exportToSpreadsheet(params) {
-  try {
-    var fullScript     = params.fullScript     || '';
-    var selectedWork   = params.selectedWork;   // { row, no, title }
-    var characterRoles = params.characterRoles; // { MAIN, HERO, VILLAIN, ... }
-
-    if (!fullScript)   throw new Error('台本が空です');
-    if (!selectedWork) throw new Error('話数が選択されていません');
-
-    var rowIndex = parseInt(selectedWork.row, 10);
-    if (isNaN(rowIndex) || rowIndex < 2) throw new Error('行番号が不正です');
-
-    // 管理表からフォルダIDを取得（AD列 = col 30）
-    var mgmtSs    = SpreadsheetApp.openById(MGMT_SHEET_ID);
-    var mgmtSheet = mgmtSs.getSheetByName(MGMT_SHEET_NAME);
-    if (!mgmtSheet) throw new Error('管理表に「' + MGMT_SHEET_NAME + '」が見つかりません');
-
-    var folderRaw = mgmtSheet.getRange(rowIndex, 30).getValue();
-    if (!folderRaw) throw new Error(rowIndex + '行目のAD列（フォルダID）が空です');
-
-    var folderId;
-    var urlMatch = String(folderRaw).match(/folders\/([a-zA-Z0-9_-]+)/);
-    if (urlMatch) {
-      folderId = urlMatch[1];
-    } else {
-      var idMatch = String(folderRaw).match(/[-\w]{25,}/);
-      if (!idMatch) throw new Error('AD列からフォルダIDを取得できません: ' + folderRaw);
-      folderId = idMatch[0];
-    }
+// タブ1（台本）・タブ2（作品No音声モデル）の組み立て本体。
+// exportToSpreadsheet（人間用・MGMT_SHEET経由）とexportForProducer_
+// （producer用・folderId直接受け取り）の共通コア。selectVoiceModelsの
+// AI選定プロンプトはここから呼ぶ1箇所のみで、両者で完全に共通。
+function buildCharacterScriptSpreadsheet_(fullScript, characterRoles, folderId, fileName) {
     var folder = DriveApp.getFolderById(folderId);
-
-    // ファイル名
-    var workNo   = selectedWork.no    || '';
-    var title    = selectedWork.title || '';
-    var fileName = (workNo ? '【' + workNo + '】' : '') + '25min ' + title;
 
     // スプシ新規作成
     var ss = SpreadsheetApp.create(fileName);
@@ -288,9 +259,6 @@ function exportToSpreadsheet(params) {
     folder.addFile(ssFile);
     DriveApp.getRootFolder().removeFile(ssFile);
 
-    // 管理表 AE列（col 31）にスプシIDを書き込み
-    mgmtSheet.getRange(rowIndex, 31).setValue(ss.getId());
-
     Logger.log('スプシ出力完了: ' + ss.getUrl());
     return {
       success:  true,
@@ -299,9 +267,85 @@ function exportToSpreadsheet(params) {
       fileName: fileName,
       rowCount: rows.length
     };
+}
+
+// 人間用UI（既存）：管理表（MGMT_SHEET）の行番号からフォルダIDを取得し、
+// スプシ出力後に管理表AE列へスプシIDを書き込む。ロジックは変更していない
+// （実体はbuildCharacterScriptSpreadsheet_に切り出したのみ）。
+function exportToSpreadsheet(params) {
+  try {
+    var fullScript     = params.fullScript     || '';
+    var selectedWork   = params.selectedWork;   // { row, no, title }
+    var characterRoles = params.characterRoles; // { MAIN, HERO, VILLAIN, ... }
+
+    if (!fullScript)   throw new Error('台本が空です');
+    if (!selectedWork) throw new Error('話数が選択されていません');
+
+    var rowIndex = parseInt(selectedWork.row, 10);
+    if (isNaN(rowIndex) || rowIndex < 2) throw new Error('行番号が不正です');
+
+    // 管理表からフォルダIDを取得（AD列 = col 30）
+    var mgmtSs    = SpreadsheetApp.openById(MGMT_SHEET_ID);
+    var mgmtSheet = mgmtSs.getSheetByName(MGMT_SHEET_NAME);
+    if (!mgmtSheet) throw new Error('管理表に「' + MGMT_SHEET_NAME + '」が見つかりません');
+
+    var folderRaw = mgmtSheet.getRange(rowIndex, 30).getValue();
+    if (!folderRaw) throw new Error(rowIndex + '行目のAD列（フォルダID）が空です');
+
+    var folderId;
+    var urlMatch = String(folderRaw).match(/folders\/([a-zA-Z0-9_-]+)/);
+    if (urlMatch) {
+      folderId = urlMatch[1];
+    } else {
+      var idMatch = String(folderRaw).match(/[-\w]{25,}/);
+      if (!idMatch) throw new Error('AD列からフォルダIDを取得できません: ' + folderRaw);
+      folderId = idMatch[0];
+    }
+
+    // ファイル名
+    var workNo   = selectedWork.no    || '';
+    var title    = selectedWork.title || '';
+    var fileName = (workNo ? '【' + workNo + '】' : '') + '25min ' + title;
+
+    var built = buildCharacterScriptSpreadsheet_(fullScript, characterRoles, folderId, fileName);
+
+    // 管理表 AE列（col 31）にスプシIDを書き込み
+    mgmtSheet.getRange(rowIndex, 31).setValue(built.ssId);
+
+    return built;
 
   } catch(e) {
     Logger.log('exportToSpreadsheet error: ' + e.message);
+    return { success: false, error: e.message };
+  }
+}
+
+// producerの自動パイプライン向け：管理表（MGMT_SHEET）を経由せず、
+// folderId/fileNameを直接受け取ってスプシを出力する（WebApi.gsのmode:'export'
+// から呼ばれる）。characterRolesが渡されない場合はdetectCharacterRolesで
+// 自動判定する。スプシ生成ロジック・AI選定プロンプトはexportToSpreadsheetと
+// 完全に共通（buildCharacterScriptSpreadsheet_）。
+function exportForProducer_(params) {
+  try {
+    var fullScript = params.fullScript || '';
+    var folderId   = params.folderId   || '';
+    var fileName   = params.fileName   || '';
+
+    if (!fullScript) throw new Error('台本が空です');
+    if (!folderId)   throw new Error('folderIdが空です');
+    if (!fileName)   throw new Error('fileNameが空です');
+
+    var characterRoles = params.characterRoles;
+    if (!characterRoles) {
+      var roleResult = detectCharacterRoles({ fullScript: fullScript });
+      if (!roleResult.success) throw new Error(roleResult.error);
+      characterRoles = roleResult.roles;
+    }
+
+    return buildCharacterScriptSpreadsheet_(fullScript, characterRoles, folderId, fileName);
+
+  } catch (e) {
+    Logger.log('exportForProducer_ error: ' + e.message);
     return { success: false, error: e.message };
   }
 }

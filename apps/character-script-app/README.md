@@ -133,26 +133,18 @@ Index.html     対話型UI（無改修）
 { "ok": false, "error": "..." }
 ```
 
-## 既知の未解決事項
+## producer連携：`圧縮`工程からのspreadsheetId受け渡し（解消済み）
 
-1. **producerパイプラインからこの工程に到達できない**
+以前は、`圧縮`工程の出力からこのAppが要求する`spreadsheetId`を得る経路が
+未設計だった（タブ1/タブ2形式のスプシを作る`exportToSpreadsheet`が
+管理表`MGMT_SHEET`の行番号からフォルダIDを取得する設計で、producerの
+自動化キューシート＝作品ごとに`フォルダID`を直接持つ設計と噛み合わなかった）。
 
-   `apps/compression-tool/README.md`に記載のとおり、`アナリストFB`工程が
-   未実装のため、producerの自動巡回は`圧縮`工程の手前で停止し、
-   `キャラ別台本`工程（この App）にも到達しない。
-
-2. **`圧縮`工程の出力からこのAppへのspreadsheetId連携が未設計**
-
-   このAppの`generateModelDocs`は、タブ1（台本）＋タブ2（「キャラ一覧」、
-   タグ・キャラ名・voice_id等）を持つスプレッドシートIDを入力に取るが、
-   そのフォーマットのスプレッドシートを作るのは`apps/compression-tool/Code.gs`の
-   `exportToSpreadsheet`（管理表からフォルダIDを取得し、台本＋
-   「作品No音声モデル」タブ＝AIによる`selectVoiceModels`割り当て済みの
-   音声モデル指定を書き出す、UIボタン専用の関数）であり、現状
-   `apps/compression-tool/WebApi.gs`の`doPost`（`mode:'run'`）からは
-   呼ばれていない（テキスト生成のみを返す）。そのため producer から
-   `callCompressionTool_`→`callCharacterScriptApp_`に処理が渡る際、
-   この App が要求する`spreadsheetId`をどう受け渡すかは未設計。
-   `callCharacterScriptApp_`は`mode`・`spreadsheetId`をそのまま転送する
-   形に修正済みだが、呼び出し元（producer）が実際にどの工程の出力から
-   `spreadsheetId`を得るかは、上記1.の解消と合わせて今後の設計課題。
+`apps/compression-tool`側に`exportForProducer_`＋`doPost`の`mode:'export'`
+（producerの自動化キューシートの`フォルダID`を直接渡せる経路。詳細は
+`apps/compression-tool/README.md`参照）を追加し、producerの「圧縮」工程
+（`apps/producer/ExternalApps.gs`の`runCompressionStage_`）がテキスト生成後に
+このスプシを作成、`圧縮_出力ID`として保存するようにした。
+`apps/producer/Code.gs`の`buildStagePayload_`が「キャラ別台本」工程実行時に
+その`圧縮_出力ID`をそのまま`spreadsheetId`としてこのAppの`mode:'run'`に渡す
+（タブ2のvoice_idは`圧縮`工程側で選定済みのため、`mode:'extract'`は呼ばない）。

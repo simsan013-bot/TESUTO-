@@ -16,7 +16,7 @@ var PIPELINE_GATE_AFTER = {
 var PIPELINE_EXECUTORS = {
   'シナリオ': callScenarioApp_,
   'アナリストFB': callAnalystFeedbackApp_,
-  '圧縮': callCompressionTool_,
+  '圧縮': runCompressionStage_,
   'キャラ別台本': callCharacterScriptApp_,
   '音声': callFishAudioTts_,
   '画像': runImageStage_

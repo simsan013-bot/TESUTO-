@@ -58,7 +58,9 @@
 - `AI.gs` の `callClaude`（既存App群対話用、無改修）
 - `Code.gs` の `getWorkList`/`detectCharacterRoles`/
   `formatForSheet`/`parseScriptToRows`/`VOICE_MODEL_LIST`/`selectVoiceModels`/
-  `exportToSpreadsheet`（旧プロンプト群削除以外は無改修）
+  `exportToSpreadsheet`（旧プロンプト群削除以外は無改修。スプシ生成の本体は
+  `buildCharacterScriptSpreadsheet_`に切り出したが、`exportToSpreadsheet`自体の
+  入出力・管理表連携の挙動は変更していない。詳細は後述「producer連携」参照）
 - `index.html`（対話型UI、ブラウザから `doGet` 経由でアクセス。一字一句無改修）
 
 ## ファイル構成
@@ -117,18 +119,41 @@ index.html     対話型UI（無改修）
 { "ok": false, "error": "..." }
 ```
 
-## 既知の未解決事項：producerパイプラインから「圧縮」工程に到達できない
+## producer連携：「キャラ別台本」工程へのスプシ受け渡し（`mode: 'export'`）
 
-`apps/producer/Pipeline.gs` の `PIPELINE_EXECUTION_ORDER` は
-`['シナリオ', 'アナリストFB', '圧縮', ...]` で、`シナリオ`工程の次は
-`アナリストFB`工程（指示書STEP4・5、ディレクター・アナリスト）だが、
-`アナリストFB` には `PIPELINE_EXECUTORS` の実行ロジックが未実装のため、
-`startProcess_`（`apps/producer/Code.gs`）が「実行中」のまま待機し続け、
-自動では `圧縮` 工程に到達できない。
+`apps/character-script-app`の`generateModelDocs`は、タブ1（台本）＋タブ2
+（「作品No音声モデル」、タグ・キャラ名・voice_id等）を持つスプレッドシートIDを
+入力に取る。このフォーマットのスプシを作る`exportToSpreadsheet`は元々
+人間用UIボタン専用の関数で、`apps/compression-tool/index.html`の現行UIからは
+実際には呼ばれておらず（死蔵）、かつ管理表（`MGMT_SHEET_ID`の行番号）から
+フォルダIDを取得する設計のため、producerの自動化キューシート（作品ごとに
+`フォルダID`を直接持つ）とは連携できなかった。
 
-本ツール自体は `doPost`/`callCompressionTool_` 経由で単独呼び出し可能な
-状態まで実装済みだが、`アナリストFB` 工程（ディレクター・アナリスト実装、
-指示書7章STEP4・5）が実装されるまでは producer の自動巡回からは
-到達不可能な状態が続く。`script`/`chars`/`design` の自動キューシート連携
-（どの列・工程の出力をどう引き渡すか）も、`アナリストFB` の出力仕様が
-固まっていない現時点では未設計。
+これを解消するため、スプシ生成の本体を`buildCharacterScriptSpreadsheet_`に
+切り出し（`exportToSpreadsheet`の挙動・管理表連携は無変更）、producerからは
+`folderId`/`fileName`を直接渡せる`exportForProducer_`＋`doPost`の
+`mode: 'export'`で呼び出す形にした。`characterRoles`を省略した場合は
+`detectCharacterRoles`で自動判定する。AI選定プロンプト（`selectVoiceModels`/
+`detectCharacterRoles`）はexportToSpreadsheet経由の人間用フローと完全に共通。
+
+リクエスト：
+```json
+{
+  "mode": "export",
+  "script": "スプシ化する台本本文（mode:'run'のscript結果をそのまま渡す想定）",
+  "folderId": "出力先DriveフォルダID",
+  "fileName": "作成するスプシ名",
+  "characterRoles": "（任意・省略時はdetectCharacterRolesで自動判定）"
+}
+```
+
+レスポンス：
+```json
+{ "ok": true, "spreadsheetId": "...", "spreadsheetUrl": "..." }
+```
+
+producer側は`apps/producer/ExternalApps.gs`の`runCompressionStage_`が
+`callCompressionTool_`（`mode:'run'`）→`callCompressionExport_`
+（`mode:'export'`）の2段呼び出しをまとめて1つの「圧縮」工程として実行し、
+返ってきた`spreadsheetId`を`圧縮_出力ID`としてキューシートに保存する
+（次工程の`キャラ別台本`はそのIDをそのまま`callCharacterScriptApp_`に渡す）。
